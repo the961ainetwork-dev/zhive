@@ -74,3 +74,52 @@ drop policy if exists "own pipelines delete" on public.pipelines;
 create policy "own pipelines read"   on public.pipelines for select using (auth.uid() = user_id);
 create policy "own pipelines write"  on public.pipelines for insert with check (auth.uid() = user_id);
 create policy "own pipelines delete" on public.pipelines for delete using (auth.uid() = user_id);
+
+-- Scheduled loops (Phase 2): pipelines that run on a cadence via Vercel Cron
+create table if not exists public.loops (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  name text not null,
+  agents jsonb not null,
+  input text not null,
+  cadence text not null default 'daily',
+  active boolean not null default true,
+  last_run timestamptz,
+  created_at timestamptz not null default now()
+);
+create table if not exists public.runs (
+  id uuid primary key default gen_random_uuid(),
+  loop_id uuid not null references public.loops (id) on delete cascade,
+  user_id uuid not null references auth.users (id) on delete cascade,
+  status text not null default 'ok',
+  steps jsonb not null,
+  created_at timestamptz not null default now()
+);
+alter table public.loops enable row level security;
+alter table public.runs enable row level security;
+drop policy if exists "own loops read"   on public.loops;
+drop policy if exists "own loops write"  on public.loops;
+drop policy if exists "own loops update" on public.loops;
+drop policy if exists "own loops delete" on public.loops;
+drop policy if exists "own runs read"    on public.runs;
+create policy "own loops read"   on public.loops for select using (auth.uid() = user_id);
+create policy "own loops write"  on public.loops for insert with check (auth.uid() = user_id);
+create policy "own loops update" on public.loops for update using (auth.uid() = user_id);
+create policy "own loops delete" on public.loops for delete using (auth.uid() = user_id);
+create policy "own runs read"    on public.runs for select using (auth.uid() = user_id);
+
+-- Verify & learn (Phase 3): output feedback; recent approved work becomes style examples
+create table if not exists public.feedback (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  agent_id text not null,
+  verdict text not null,
+  excerpt text not null,
+  task_excerpt text,
+  created_at timestamptz not null default now()
+);
+alter table public.feedback enable row level security;
+drop policy if exists "own feedback read"  on public.feedback;
+drop policy if exists "own feedback write" on public.feedback;
+create policy "own feedback read"  on public.feedback for select using (auth.uid() = user_id);
+create policy "own feedback write" on public.feedback for insert with check (auth.uid() = user_id);
