@@ -1315,6 +1315,8 @@ function PipelinesPage({ go, session }) {
     ["03 · QA reviews every draft", "A separate reviewer agent checks the output against a rubric: specific names and numbers, stays on specialty, ends with concrete next actions. If it falls short, the agent revises once — before you ever see it."],
     ["04 · The handoff", "The delivered work is wrapped as context and passed to the next specialist with strict instructions: build on it, don't repeat it, stay in your lane. This is the L6 relay — agents cooperating like colleagues, not tabs."],
     ["05 · A stacked digest, not fragments", "The chain ends with every brief in one place: labeled, QA-tagged, WhatsApp-shareable. One input became a plan, a forecast, and the KPIs to track it — with nobody copy-pasting in between."],
+    ["06 · You verify — the hive learns", "Every brief has 👍 / 👎. Approve a result and that agent quietly keeps it as a style example: your next runs match the tone, language, and level of detail you approved — per agent, per founder, automatically."],
+    ["07 · Put it on a schedule — the full loop", "Any pipeline can run itself: pick daily or weekly and it executes on zhive's servers while you sleep — same QA cycle, same learning — with the digest waiting in your workspace every morning. That's the complete loop: observe, reason, execute, verify, learn, repeat."],
   ];
   const CHAINS = [
     ["Strategy Sprint", "Strategic Planner → Forecasting Agent → KPI Monitor", "A quarter plan, its financial projection, and the metrics that prove it. Runs on the free demo."],
@@ -1331,6 +1333,8 @@ function PipelinesPage({ go, session }) {
           A pipeline is several AI agents pre-connected in a row. You give one task; agent one does its
           specialist work, a QA agent reviews it, and the result is handed to the next specialist — who builds
           on it instead of starting over. The chain ends with a stack of QA-checked briefs from a single input.
+          Approve the good ones and the agents learn your style. Put the pipeline on a schedule and it runs
+          without you — the digest is waiting every morning.
         </p>
       </section>
 
@@ -1385,12 +1389,14 @@ function PipelinesPage({ go, session }) {
       </section>
 
       <section className="section-sm">
-        <h2 className="sub">Try it for real — 4 steps, no card</h2>
-        <p><strong>1.</strong> Start the free 24-hour demo (or sign in).</p>
-        <p><strong>2.</strong> In your workspace, fill the business profile once — every agent reads it automatically.</p>
+        <h2 className="sub">Try it for real — 6 steps, no card</h2>
+        <p><strong>1.</strong> Start the free 24-hour demo (or create a free account — needed for scheduled loops).</p>
+        <p><strong>2.</strong> In your workspace, fill the business profile once — every agent reads it automatically, forever.</p>
         <p><strong>3.</strong> Scroll to <strong>Pipelines</strong> and open <strong>Strategy Sprint</strong>. Type one real task, for example:
           <em> "Q4 plan for taking our product into the Saudi market."</em></p>
         <p><strong>4.</strong> Press Run and watch three specialists chain: plan → forecast → KPIs, each streaming live, each QA-checked, each building on the last.</p>
+        <p><strong>5.</strong> Press <strong>👍</strong> on the briefs you like — from now on those agents write in the style you approved. (You can also chain agents manually with "Hand off", then "Save pipeline" to make your own.)</p>
+        <p><strong>6.</strong> Pick <strong>every day</strong> or <strong>every week</strong> next to the Run button and press <strong>"⟳ Run on a schedule"</strong>. Your loop now runs itself — results land under <strong>Active loops</strong> in your workspace, no click required.</p>
         <div className="row" style={{ marginTop: 16 }}>
           {session ? (
             <button className="btn" onClick={() => go("workspace")}>Open your workspace →</button>
