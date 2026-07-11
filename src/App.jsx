@@ -382,7 +382,7 @@ const timeLeft = (expires) => {
 export default function ZhiveApp() {
   // routing — state-driven, synced to real URLs (/admin, /directory, /agent/:id …)
   // so deep links, refreshes, and back/forward all work (vercel.json rewrites make Vercel serve the SPA).
-  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "agent", "cart", "auth", "workspace", "admin"];
+  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "agent", "cart", "auth", "workspace", "admin"];
   const routeFromPath = () => {
     const parts = window.location.pathname.split("/").filter(Boolean);
     const view = parts[0] || "home";
@@ -494,6 +494,7 @@ export default function ZhiveApp() {
       {route.view === "article" && <ArticlePage id={route.agentId} go={go} />}
       {route.view === "directory" && <Directory go={go} inCart={inCart} addToCart={addToCart} />}
       {route.view === "method" && <MethodPage go={go} />}
+      {route.view === "pipelines" && <PipelinesPage go={go} session={session} />}
       {route.view === "agent" && <AgentPage agent={getAgent(route.agentId)} go={go} inCart={inCart} addToCart={addToCart} session={session} biz={biz} />}
       {route.view === "cart" && <CartPage cart={cart} removeFromCart={removeFromCart} total={cartTotal} checkout={checkout} session={session} busy={busy} go={go} />}
       {route.view === "auth" && <AuthPage signup={signup} login={login} startDemo={startDemo} />}
@@ -518,6 +519,7 @@ function Header({ go, session, cart, logout }) {
         <button className="link" onClick={() => go("home")}>Hive</button>
         <button className="link" onClick={() => go("directory")}>Directory</button>
         <button className="link" onClick={() => go("method")}>Method</button>
+        <button className="link" onClick={() => go("pipelines")}>Pipelines</button>
         <button className="link" onClick={() => go("about")}>About</button>
         <button className="link" onClick={() => go("knowledge")}>Knowledge</button>
         <button className="link" onClick={() => go("cart")}>Cart{cart.length > 0 ? ` (${cart.length})` : ""}</button>
@@ -735,7 +737,8 @@ function AboutPage({ go }) {
         </p>
         <LoopLab />
         <div className="row" style={{ marginTop: 18 }}>
-          <button className="btn" onClick={() => go("article", "loop-engineering")}>Read: The Advent of Loop Engineering →</button>
+          <button className="btn" onClick={() => go("pipelines")}>How pipelines work →</button>
+          <button className="btn ghost" onClick={() => go("article", "loop-engineering")}>Read the essay</button>
           <button className="btn ghost" onClick={() => go("auth")}>Build your AI workforce</button>
         </div>
       </section>
@@ -879,6 +882,72 @@ function LoopArticle({ go }) {
 // Block types: p (paragraph), pull (quote), h (section header), stats, flow, vs (comparison),
 // tl (timeline / numbered stack), grid (cards), checks (chip list)
 const ARTICLES = [
+  {
+    id: "multi-agent-architectures", kind: "Technical paper",
+    title: "Advanced Multi-Agent System Design: Pipelines, Loops, and Hybrid Architectures",
+    dek: "A technical blueprint for production agentic workflows — when to run a straight line, when to run a cycle, and how to keep loops from running away.",
+    blocks: [
+      { t: "pull", x: "A pipeline moves data forward. A loop moves it back until it's right." },
+      { t: "p", x: "Modern enterprise AI systems are evolving past single-prompt interactions and deterministic chains. Production-grade orchestration requires a hybrid architecture that balances the efficiency of linear, predictable pipelines with the cognitive flexibility of adaptive loop engineering. This paper is a blueprint for architects building agentic workflows: how to combine linear execution with cyclical feedback to achieve self-correcting, autonomous systems." },
+
+      { t: "h", x: "1 · Architectural taxonomy: pipelines vs. loops" },
+      { t: "p", x: "A pipeline is a deterministic, sequential workflow: data moves in one direction through discrete, strongly typed steps. The execution path is fixed before the run starts — if a step hits an exception or an unexpected schema, the pipeline halts or fails." },
+      { t: "code", x: `Input ─▶ f(x) ─▶ g(x) ─▶ h(x) ─▶ Output
+
+[Data Ingestion] ──▶ [Schema Validation] ──▶ [LLM Context Enrichment] ──▶ [Database Write]` },
+      { t: "p", x: "Pipelines buy you low latency, predictable token consumption, deterministic runtime, and simple telemetry. They are the right tool for ETL, document parsing, vector indexing, and standardized batch reporting." },
+      { t: "p", x: "Loop engineering introduces cyclical execution: an LLM or an evaluation system decides routing, iteration count, and termination at runtime. An output is treated as a hypothesis to be validated against guardrails or external tools — not a result to be passed blindly forward." },
+      { t: "code", x: `       ┌──────────────────────────────┐
+       ▼      (feedback / refinement) │
+[Task Input] ─▶ [Generator] ─▶ [Evaluator / Guardrail] ─▶ [Success] ─▶ [Exit]` },
+      { t: "p", x: "Loops buy resiliency to messy inputs, autonomous error correction, and the capacity for non-deterministic reasoning: self-healing code generation, multi-source competitive research, autonomous audit reconciliation." },
+
+      { t: "h", x: "When to use which" },
+      { t: "vs", head: ["Linear pipeline", "Loop engineering"], rows: [
+        ["Stable, uniform data schemas", "Messy, unstructured, adaptive inputs"],
+        ["Low-latency or strict batch windows", "Minutes-scale, asynchronous execution"],
+        ["Predictable, static cost per run", "Variable cost — depends on convergence"],
+        ["Failures logged, skipped, or retried globally", "Failures self-corrected by the agent"],
+      ]},
+
+      { t: "h", x: "2 · Production loop patterns" },
+      { t: "grid", x: [
+        ["Generator–Evaluator (Reflection)", "Decouple production from quality control: an expansive Generator drafts, a strict rule-bound Evaluator scores against metrics (schema adherence, factual checks, safety). Below threshold τ, a structured error payload goes back to the Generator and loop n+1 begins. This is exactly the draft → QA → revise cycle behind every zhive agent run."],
+        ["Dynamic routing / ReAct", "An orchestration agent manages a pool of stateless tools — databases, search, computation. It selects a tool, parses the response, updates its inner monologue, and loops again with a different tool if the picture is incomplete."],
+        ["Human-in-the-loop (HITL)", "Pure autonomy is operational risk in high-stakes domains — capital deployment, publishing, schema migrations. At a critical gate the agent persists its state, dispatches a notification, and suspends. A human's approve / modify / reject re-hydrates the loop as the definitive state variable."],
+      ]},
+
+      { t: "h", x: "3 · Guardrails: taming the infinite loop" },
+      { t: "p", x: "Unbounded loops are the single largest source of compute waste and latency inflation in agentic software. Every production loop needs three foundational guardrails." },
+      { t: "code", x: `# Conceptual loop guardrail
+MAX_LOOPS = 5
+loop_counter = 0
+
+while loop_counter < MAX_LOOPS:
+    output = generate_agent_response(state)
+    score, feedback = evaluate_output(output)
+
+    if score >= 0.90:
+        return output
+
+    state.update_history(feedback)
+    loop_counter += 1
+
+return handle_fallback_gracefully(state)` },
+      { t: "tl", x: [
+        ["01 — Maximum iteration thresholds", "Every loop evaluates a strictly incremented counter against a hard ceiling. No score convergence by loop N means a graceful deterministic fallback — never a sixth attempt."],
+        ["02 — Token & financial circuit breakers", "Multi-agent reasoning can scale consumption exponentially on edge cases. Track rolling session cost; past a threshold (say $1.50 per request), trip the breaker, halt, and fall back to a cached pipeline response."],
+        ["03 — State & memory horizons", "An agent that doesn't know why its last three attempts failed will repeat them. Keep a mutable scratchpad (current prompt, latest error, last tool result) — and past 3–4 cycles, summarize history before appending it, or context saturation degrades every following prompt."],
+      ]},
+
+      { t: "h", x: "4 · The hybrid blueprint: a loop within a pipeline" },
+      { t: "p", x: "The most performant enterprise systems are hybrids: pipelines provide scalable infrastructure for ingestion and delivery, while isolated internal loops handle the non-deterministic reasoning in the middle." },
+      { t: "flow", x: ["Linear ingestion", "Agentic loop", "Linear delivery"] },
+      { t: "p", x: "Ingestion (pipeline): a scheduled worker pulls raw data — market tables, transaction logs — normalizes and types it. Analysis (loop): the structured data enters a multi-agent sandbox where Agent A drafts and Agent B evaluates for risk and logical anomalies, iterating until compliance criteria are met. Delivery (pipeline): the finalized object is indexed, mapped to the UI, and pushed out as a live update." },
+      { t: "pull", x: "Pipelines carry the work in and out. The loop is where the thinking happens." },
+      { t: "p", x: "This is the architecture running under zhive itself: your task and business profile enter through a pipeline, the Generator–Evaluator loop (draft → QA → revise) plus L6 handoffs do the reasoning, and a single QA-tagged digest exits through the delivery side — whether to your workspace, or one day to your inbox on a schedule." },
+    ],
+  },
   {
     id: "death-of-saas", kind: "Featured essay", title: "The Death of SaaS: Why Software Is Becoming a Workforce",
     dek: "For twenty years we rented screens. The next generation of software shows up for work.",
@@ -1110,6 +1179,7 @@ function ArtBlocks({ blocks }) {
     <>
       {blocks.map((b, i) => {
         if (b.t === "p") return <p key={i}>{b.x}</p>;
+        if (b.t === "code") return <pre key={i} className="art-code">{b.x}</pre>;
         if (b.t === "pull") return <blockquote key={i} className="pull">{b.x}</blockquote>;
         if (b.t === "h") return <h2 key={i} className="sub" style={{ marginTop: 34 }}>{b.x}</h2>;
         if (b.t === "stats") return (
@@ -1215,6 +1285,104 @@ const METHOD_BLOCKS = [
   ]},
   { t: "pull", x: "Quality is a loop. Cost is a routing decision. Memory is the moat." },
 ];
+
+
+// ════════ PIPELINES — how loop engineering works, step by step ════════
+function PipelinesPage({ go, session }) {
+  const STEPS = [
+    ["01 · One task in", "You write a single instruction — \"Q4 plan for entering the Saudi market\" — and your business profile (product, market, tone, goals) is attached automatically. You never re-explain your company to each agent."],
+    ["02 · The first specialist drafts, live", "Agent one streams its brief token by token. No black box, no waiting screen — you watch the work being written."],
+    ["03 · QA reviews every draft", "A separate reviewer agent checks the output against a rubric: specific names and numbers, stays on specialty, ends with concrete next actions. If it falls short, the agent revises once — before you ever see it."],
+    ["04 · The handoff", "The delivered work is wrapped as context and passed to the next specialist with strict instructions: build on it, don't repeat it, stay in your lane. This is the L6 relay — agents cooperating like colleagues, not tabs."],
+    ["05 · A stacked digest, not fragments", "The chain ends with every brief in one place: labeled, QA-tagged, WhatsApp-shareable. One input became a plan, a forecast, and the KPIs to track it — with nobody copy-pasting in between."],
+  ];
+  const CHAINS = [
+    ["Strategy Sprint", "Strategic Planner → Forecasting Agent → KPI Monitor", "A quarter plan, its financial projection, and the metrics that prove it. Runs on the free demo."],
+    ["Launch Prep", "Market Research → Pricing Agent → Content Writer", "Know the market, price the offer, and walk away with launch copy."],
+    ["Competitor Scan", "Competitor Intelligence → Strategic Planner", "Map competitor moves, then turn the findings into your counter-strategy."],
+    ["Investor Update", "Finance Agent → Board Reporter", "A financial brief distilled into a board-ready update."],
+  ];
+  return (
+    <main className="wrap">
+      <section className="section">
+        <p className="eyebrow">Pipelines · Loop engineering in practice</p>
+        <h1>One input. A chain of specialists. Zero copy-paste.</h1>
+        <p className="lede">
+          A pipeline is several AI agents pre-connected in a row. You give one task; agent one does its
+          specialist work, a QA agent reviews it, and the result is handed to the next specialist — who builds
+          on it instead of starting over. The chain ends with a stack of QA-checked briefs from a single input.
+        </p>
+      </section>
+
+      <section className="section-sm">
+        <h2 className="sub">Why this is different from a chatbot</h2>
+        <p>
+          A chatbot is one generalist with amnesia: every question starts from zero, you carry the context,
+          and you are the quality control. A zhive pipeline inverts all three. Each step is a <strong>specialist</strong> with
+          MENA-specific expertise, the <strong>context travels automatically</strong> from agent to agent through structured
+          handoffs, and <strong>quality is enforced by a reviewer agent</strong> at every step — not by you re-reading and
+          re-prompting. That is the practical difference between prompt engineering (you drive every turn) and
+          loop engineering (the system drives the cycle: observe, reason, execute, verify, hand off).
+        </p>
+      </section>
+
+      <section className="section-sm">
+        <h2 className="sub">How a pipeline actually runs</h2>
+        {STEPS.map(([t, d]) => (
+          <div className="ws-agent" key={t}>
+            <strong>{t}</strong>
+            <p className="dim-t" style={{ margin: "4px 0 0" }}>{d}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="section-sm">
+        <h2 className="sub">Feel the loop first — a 60-second simulation</h2>
+        <p className="dim-t">
+          This sandbox runs entirely in your browser: five products, one loop. Set a competitor price to
+          <strong> Error</strong> to see how a well-engineered loop survives failure, then watch one digest fire only after
+          the whole loop finishes.
+        </p>
+        <LoopLab />
+      </section>
+
+      <section className="section-sm">
+        <h2 className="sub">The curated pipelines</h2>
+        {CHAINS.map(([name, chain, d]) => (
+          <div className="ws-agent" key={name}>
+            <div className="row spread">
+              <strong>{name}</strong>
+              <span className="tag">CURATED</span>
+            </div>
+            <p className="dim-t" style={{ margin: "4px 0 0" }}>{chain}</p>
+            <p style={{ margin: "6px 0 0" }}>{d}</p>
+          </div>
+        ))}
+        <p className="dim-t" style={{ marginTop: 10 }}>
+          You can also build your own: run any agent in your workspace, hand off to another, and press
+          "Save pipeline" — your chain becomes a one-click tool forever.
+        </p>
+      </section>
+
+      <section className="section-sm">
+        <h2 className="sub">Try it for real — 4 steps, no card</h2>
+        <p><strong>1.</strong> Start the free 24-hour demo (or sign in).</p>
+        <p><strong>2.</strong> In your workspace, fill the business profile once — every agent reads it automatically.</p>
+        <p><strong>3.</strong> Scroll to <strong>Pipelines</strong> and open <strong>Strategy Sprint</strong>. Type one real task, for example:
+          <em> "Q4 plan for taking our product into the Saudi market."</em></p>
+        <p><strong>4.</strong> Press Run and watch three specialists chain: plan → forecast → KPIs, each streaming live, each QA-checked, each building on the last.</p>
+        <div className="row" style={{ marginTop: 16 }}>
+          {session ? (
+            <button className="btn" onClick={() => go("workspace")}>Open your workspace →</button>
+          ) : (
+            <button className="btn" onClick={() => go("auth")}>Start the 24h demo →</button>
+          )}
+          <button className="btn ghost" onClick={() => go("article", "loop-engineering")}>Read: The Advent of Loop Engineering</button>
+        </div>
+      </section>
+    </main>
+  );
+}
 
 function MethodPage({ go }) {
   return (
@@ -1671,7 +1839,8 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
         <h2 className="sub">Pipelines</h2>
         <p className="dim-t">
           Reusable agent chains — one input runs every agent in sequence, each building on the last.
-          Save your own from any multi-agent chain above, or run a curated one.
+          Save your own from any multi-agent chain above, or run a curated one.{" "}
+          <button className="link" onClick={() => go("pipelines")}>How pipelines work →</button>
         </p>
         {[...pipes, ...CURATED_PIPELINES].map((p) => {
           const agents = p.agentIds.map(getAgent).filter(Boolean);
@@ -1839,6 +2008,8 @@ function Admin() {
 
 // ════════ STYLES ════════
 const CSS = `
+.art-code { background:#131519; color:#B7BDC6; padding:14px 16px; border-radius:8px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; overflow-x:auto; white-space:pre; margin:16px 0; }
+
 :root {
   --ink: #0B0B0B;
   --dim: #6E6E6E;
