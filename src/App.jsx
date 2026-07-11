@@ -232,8 +232,11 @@ const bizContext = (biz) =>
 
 // The quality loop, now streamed: live draft → light-tier QA review → one live revision if needed.
 // onUpdate({ phase, text }) fires as tokens arrive; phase ∈ "drafting" | "qa" | "revising".
-async function runAgentTask(agent, input, biz, onUpdate) {
-  const userMsg = `${bizContext(biz)}Task from the founder:\n${input}\n\nProduce your specialist work now.`;
+async function runAgentTask(agent, input, biz, onUpdate, examples) {
+  const exBlock = examples?.length
+    ? `Style guide — work this founder previously approved. Match its tone, specificity, language and format (do not copy its content):\n${examples.map((e, i) => `--- approved example ${i + 1} ---\n${String(e).slice(0, 900)}`).join("\n")}\n--- end examples ---\n\n`
+    : "";
+  const userMsg = `${bizContext(biz)}${exBlock}Task from the founder:\n${input}\n\nProduce your specialist work now.`;
   if (onUpdate) onUpdate({ phase: "drafting", text: "" });
   let text = await callClaudeStream(
     agent.system,
@@ -260,6 +263,13 @@ async function runAgentTask(agent, input, biz, onUpdate) {
     } else qa = "passed";
   } catch { /* QA is best-effort — never block delivery */ }
   return { text, qa };
+}
+
+// Verify & learn: fetch this founder's approved examples for the agent, then run.
+async function runAgentTaskFor(session, agent, input, biz, onUpdate) {
+  let examples = [];
+  try { examples = await store.getLikedExamples(session, agent.id); } catch { /* optional */ }
+  return runAgentTask(agent, input, biz, onUpdate, examples);
 }
 
 // ——— agent-to-agent handoffs (the L6 relay) ———
@@ -318,7 +328,7 @@ function HAccordion({ items, renderHead, renderBody, initial = 0, height = 340 }
 const Tag = ({ children }) => <span className="tag">{children}</span>;
 
 // Renders a pipeline of agent outputs (first run + any handoffs) plus the live streaming step.
-function ChainView({ steps, live }) {
+function ChainView({ steps, live, onFeedback }) {
   return (
     <>
       {steps.map((s, i) => (
@@ -327,7 +337,17 @@ function ChainView({ steps, live }) {
             <span className="tag">
               {i > 0 ? `↳ handoff · ${s.agent.name}` : s.agent.name} · QA {qaLabel(s.qa)}
             </span>
-            <button className="link" onClick={() => waShare(s.text)}>Send to WhatsApp →</button>
+            <span className="row" style={{ gap: 12 }}>
+              {onFeedback && (s.fb ? (
+                <span className="dim-t small-t">{s.fb === "up" ? "✓ Saved — future work will match this style" : "✓ Noted"}</span>
+              ) : (
+                <>
+                  <button className="link" title="Good — teach the agent this style" onClick={() => onFeedback(i, "up")}>👍</button>
+                  <button className="link" title="Not what I wanted" onClick={() => onFeedback(i, "down")}>👎</button>
+                </>
+              ))}
+              <button className="link" onClick={() => waShare(s.text)}>Send to WhatsApp →</button>
+            </span>
           </div>
           <Markdown text={s.text} />
         </div>
@@ -1483,11 +1503,18 @@ function AgentPage({ agent, go, inCart, addToCart, session, biz }) {
     setErr(null); setSteps([]);
     setLive({ phase: "drafting", text: "", agent });
     try {
-      const r = await runAgentTask(agent, demoInput, biz, (u) => setLive({ ...u, agent }));
+      const r = await runAgentTaskFor(session, agent, demoInput, biz, (u) => setLive({ ...u, agent }));
       store.logEvent("run", session);
       setSteps([{ agent, ...r }]);
     } catch (e) { setErr(e.message); }
     setLive(null);
+  }
+
+  function feedback(i, verdict) {
+    const s = steps[i];
+    if (!s) return;
+    store.saveFeedback(session, { agentId: s.agent.id, verdict, text: s.text, task: demoInput });
+    setSteps((list) => list.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)));
   }
 
   async function handoff(toId) {
@@ -1498,7 +1525,7 @@ function AgentPage({ agent, go, inCart, addToCart, session, biz }) {
     setLive({ phase: "drafting", text: "", agent: toAgent });
     try {
       const input = handoffInput(prev.agent, toAgent, demoInput, prev.text);
-      const r = await runAgentTask(toAgent, input, biz, (u) => setLive({ ...u, agent: toAgent }));
+      const r = await runAgentTaskFor(session, toAgent, input, biz, (u) => setLive({ ...u, agent: toAgent }));
       store.logEvent("run", session);
       setSteps((s) => [...s, { agent: toAgent, ...r }]);
     } catch (e) { setErr(e.message); }
@@ -1558,7 +1585,7 @@ function AgentPage({ agent, go, inCart, addToCart, session, biz }) {
                 </button>
                 {err && <span className="err">{err} — try again.</span>}
               </div>
-              <ChainView steps={steps} live={live} />
+              <ChainView steps={steps} live={live} onFeedback={feedback} />
               {steps.length > 0 && !busy && (
                 <HandoffBar
                   currentId={steps[steps.length - 1].agent.id}
@@ -1666,12 +1693,18 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
   const [running, setRunning] = useState({}); // agentId -> {input, steps, live, err, pipeName}
   const [pipes, setPipes] = useState([]); // saved pipelines
   const [pRun, setPRun] = useState({}); // pipelineId -> {input, steps, live, err}
+  const [loops, setLoops] = useState([]); // scheduled loops
+  const [loopRuns, setLoopRuns] = useState([]); // recent cron run results
+  const [openRun, setOpenRun] = useState(null); // expanded run id
   const [bizDraft, setBizDraft] = useState(biz || { product: "", market: "", tone: "", goals: "" });
   const [bizSaved, setBizSaved] = useState(false);
   useEffect(() => { setBizDraft(biz || { product: "", market: "", tone: "", goals: "" }); }, [biz]);
   useEffect(() => {
-    if (session) store.getPipelines(session).then(setPipes);
-    else setPipes([]);
+    if (session) {
+      store.getPipelines(session).then(setPipes);
+      store.getLoops(session).then(setLoops);
+      store.getLoopRuns(session).then(setLoopRuns);
+    } else { setPipes([]); setLoops([]); setLoopRuns([]); }
   }, [session?.id]);
 
   if (!session) {
@@ -1718,7 +1751,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
         const agent = agents[i];
         const input = i === 0 ? st.input : handoffInput(agents[i - 1], agent, st.input, steps[i - 1].text);
         setP(p.id, { live: { phase: "drafting", text: "", agent } });
-        const r = await runAgentTask(agent, input, bizDraft, (u) => setP(p.id, { live: { ...u, agent } }));
+        const r = await runAgentTaskFor(session, agent, input, bizDraft, (u) => setP(p.id, { live: { ...u, agent } }));
         store.logEvent("run", session);
         steps.push({ agent, ...r });
         setP(p.id, { steps: [...steps] });
@@ -1727,13 +1760,70 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
     } catch (e) { setP(p.id, { err: e.message, live: null }); }
   }
 
+  // Put a pipeline on a schedule: snapshot the agent chain so the cron worker
+  // can run it server-side without the client bundle.
+  async function scheduleLoop(p) {
+    const st = pRun[p.id] || {};
+    if (!st.input?.trim()) { setP(p.id, { err: "Write the task first — that's what the loop will run on schedule." }); return; }
+    const agents = p.agentIds.map(getAgent).filter(Boolean).slice(0, 3)
+      .map((a) => ({ id: a.id, name: a.name, system: a.system, tier: a.tier || "standard" }));
+    const r = await store.createLoop(session, {
+      name: p.name, agents, input: st.input.trim(), cadence: st.cadence === "weekly" ? "weekly" : "daily",
+    });
+    if (r.error) { setP(p.id, { err: r.error }); return; }
+    setLoops((l) => [r.loop, ...l]);
+    setP(p.id, { err: null, scheduled: true });
+    setTimeout(() => setP(p.id, { scheduled: false }), 3000);
+  }
+
+  function fbAgent(agentId) {
+    return (i, verdict) => {
+      const st = running[agentId] || {};
+      const s = st.steps?.[i];
+      if (!s) return;
+      store.saveFeedback(session, { agentId: s.agent.id, verdict, text: s.text, task: st.input });
+      setR(agentId, { steps: st.steps.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)) });
+    };
+  }
+
+  function fbPipe(pid) {
+    return (i, verdict) => {
+      const st = pRun[pid] || {};
+      const s = st.steps?.[i];
+      if (!s) return;
+      store.saveFeedback(session, { agentId: s.agent.id, verdict, text: s.text, task: st.input });
+      setP(pid, { steps: st.steps.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)) });
+    };
+  }
+
+  function fbRun(run) {
+    return (i, verdict) => {
+      const s = (run.steps || [])[i];
+      if (!s) return;
+      const loop = loops.find((l) => l.id === run.loop_id);
+      store.saveFeedback(session, { agentId: s.id || s.name, verdict, text: s.text, task: loop?.input || "" });
+      setLoopRuns((rs) => rs.map((r) => (r.id === run.id
+        ? { ...r, steps: r.steps.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)) } : r)));
+    };
+  }
+
+  async function toggleLoop(loop) {
+    await store.setLoopActive(session, loop.id, !loop.active);
+    setLoops((ls) => ls.map((l) => (l.id === loop.id ? { ...l, active: !loop.active } : l)));
+  }
+
+  async function removeLoop(id) {
+    await store.deleteLoop(session, id);
+    setLoops((ls) => ls.filter((l) => l.id !== id));
+  }
+
   async function run(agentId) {
     const agent = getAgent(agentId);
     const st = running[agentId] || {};
     if (!st.input?.trim() || st.live) return;
     setR(agentId, { steps: [], err: null, live: { phase: "drafting", text: "", agent } });
     try {
-      const r = await runAgentTask(agent, st.input, bizDraft, (u) => setR(agentId, { live: { ...u, agent } }));
+      const r = await runAgentTaskFor(session, agent, st.input, bizDraft, (u) => setR(agentId, { live: { ...u, agent } }));
       store.logEvent("run", session);
       setR(agentId, { steps: [{ agent, ...r }], live: null });
     } catch (e) { setR(agentId, { err: e.message, live: null }); }
@@ -1747,7 +1837,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
     setR(agentId, { err: null, live: { phase: "drafting", text: "", agent: toAgent } });
     try {
       const input = handoffInput(prev.agent, toAgent, st.input, prev.text);
-      const r = await runAgentTask(toAgent, input, bizDraft, (u) => setR(agentId, { live: { ...u, agent: toAgent } }));
+      const r = await runAgentTaskFor(session, toAgent, input, bizDraft, (u) => setR(agentId, { live: { ...u, agent: toAgent } }));
       store.logEvent("run", session);
       setR(agentId, { steps: [...(st.steps || []), { agent: toAgent, ...r }], live: null });
     } catch (e) { setR(agentId, { err: e.message, live: null }); }
@@ -1807,7 +1897,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
                 </button>
                 {st.err && <span className="err">{st.err}</span>}
               </div>
-              <ChainView steps={st.steps || []} live={st.live || null} />
+              <ChainView steps={st.steps || []} live={st.live || null} onFeedback={fbAgent(id)} />
               {(st.steps?.length || 0) > 0 && !st.live && (
                 <HandoffBar
                   currentId={st.steps[st.steps.length - 1].agent.id}
@@ -1873,15 +1963,89 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
                     <button className="btn small" onClick={() => runPipeline(p)} disabled={!!st.live || !st.input?.trim()}>
                       {st.live ? `Running ${st.live.agent.name}…` : (st.steps?.length ? "Run again" : `Run pipeline (${agents.length} agents)`)}
                     </button>
+                    {store.loopsAvailable(session) ? (
+                      <>
+                        <select value={st.cadence || "daily"} onChange={(e) => setP(p.id, { cadence: e.target.value })}
+                          style={{ padding: "6px 8px" }} aria-label="Loop cadence">
+                          <option value="daily">every day</option>
+                          <option value="weekly">every week</option>
+                        </select>
+                        <button className="btn small ghost" onClick={() => scheduleLoop(p)} disabled={!!st.live}>
+                          ⟳ Run on a schedule
+                        </button>
+                        {st.scheduled && <span className="dim-t small-t">Loop created ✓ — see Active loops below</span>}
+                      </>
+                    ) : (
+                      session.demo && <span className="dim-t small-t">⟳ Scheduled loops need a full (free) account.</span>
+                    )}
                     {st.err && <span className="err">{st.err}</span>}
                   </div>
-                  <ChainView steps={st.steps || []} live={st.live || null} />
+                  <ChainView steps={st.steps || []} live={st.live || null} onFeedback={fbPipe(p.id)} />
                 </>
               )}
             </div>
           );
         })}
       </section>
+
+      {store.loopsAvailable(session) && (
+        <section className="section-sm">
+          <h2 className="sub">Active loops</h2>
+          <p className="dim-t">
+            Pipelines on a schedule — they run on zhive's servers even when you're offline, and every result
+            lands here (and in your inbox, once email delivery is configured). This is loop engineering, live.
+          </p>
+          {loops.length === 0 ? (
+            <p className="dim-t">No loops yet. Write a task in any pipeline above and press "⟳ Run on a schedule".</p>
+          ) : loops.map((l) => (
+            <div key={l.id} className="ws-agent" style={l.active ? undefined : { opacity: 0.6 }}>
+              <div className="row spread">
+                <div>
+                  <strong>{l.name}</strong>
+                  <span className="dim-t"> · {l.cadence} · {(l.agents || []).map((a) => a.name).join(" → ")}</span>
+                </div>
+                <div className="row" style={{ gap: 10 }}>
+                  <span className="tag">{l.active ? "ACTIVE" : "PAUSED"}</span>
+                  <button className="link" onClick={() => toggleLoop(l)}>{l.active ? "Pause" : "Resume"}</button>
+                  <button className="link dim" onClick={() => removeLoop(l.id)}>Delete</button>
+                </div>
+              </div>
+              <p className="dim-t" style={{ margin: "4px 0 0" }}>
+                Task: "{l.input}"{l.last_run ? ` · last ran ${new Date(l.last_run).toLocaleString()}` : " · hasn't run yet — next daily tick is 06:00 UTC"}
+              </p>
+            </div>
+          ))}
+
+          {loopRuns.length > 0 && (
+            <>
+              <h3 style={{ marginTop: 22 }}>Recent loop runs</h3>
+              {loopRuns.map((r) => {
+                const loopName = loops.find((l) => l.id === r.loop_id)?.name || "Loop";
+                const open = openRun === r.id;
+                return (
+                  <div key={r.id} className="ws-agent">
+                    <div className="row spread">
+                      <div>
+                        <strong>{loopName}</strong>
+                        <span className="dim-t"> · {new Date(r.created_at).toLocaleString()} · {(r.steps || []).length} step{(r.steps || []).length > 1 ? "s" : ""}</span>
+                        {r.status !== "ok" && <span className="err" style={{ marginLeft: 8 }}>failed</span>}
+                      </div>
+                      <button className="link" onClick={() => setOpenRun(open ? null : r.id)}>{open ? "Hide" : "View digest"}</button>
+                    </div>
+                    {open && (
+                      <ChainView
+                        steps={(r.steps || []).map((s) => ({ agent: { name: s.name, id: s.id || s.name }, text: s.text, qa: s.qa, fb: s.fb }))}
+                        live={null}
+                        onFeedback={fbRun(r)}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </section>
+      )}
 
       <section className="section-sm">
         <h2 className="sub">Purchases</h2>
