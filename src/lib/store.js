@@ -28,6 +28,7 @@ const mem = {
     { type: "purchase", user_id: "u-sample", t: Date.now() - 86400000 * 2 },
   ],
   pipelines: [],
+  feedback: [],
 };
 
 function memMetrics() {
@@ -172,6 +173,65 @@ export const store = {
     if (!isCloud || session.demo) { mem.pipelines = mem.pipelines.filter((p) => p.id !== id); return {}; }
     const { error } = await sb.from("pipelines").delete().eq("id", id).eq("user_id", session.id);
     return error ? { error: error.message } : {};
+  },
+
+  // ——— verify & learn (Phase 3): thumbs feedback + approved-style examples ———
+  async saveFeedback(session, { agentId, verdict, text, task }) {
+    if (!session) return { error: "Sign in first" };
+    const row = { agent_id: agentId, verdict, excerpt: (text || "").slice(0, 1200), task_excerpt: (task || "").slice(0, 300) };
+    if (!isCloud || session.demo) { mem.feedback.unshift({ ...row, user_id: session.id }); return {}; }
+    const { error } = await sb.from("feedback").insert({ ...row, user_id: session.id });
+    return error ? { error: error.message } : {};
+  },
+
+  // Latest 👍 outputs for this agent — injected into future prompts as a style guide.
+  async getLikedExamples(session, agentId, limit = 2) {
+    if (!session) return [];
+    if (!isCloud || session.demo) {
+      return mem.feedback
+        .filter((f) => f.user_id === session.id && f.agent_id === agentId && f.verdict === "up")
+        .slice(0, limit).map((f) => f.excerpt);
+    }
+    const { data } = await sb.from("feedback").select("excerpt")
+      .eq("user_id", session.id).eq("agent_id", agentId).eq("verdict", "up")
+      .order("created_at", { ascending: false }).limit(limit);
+    return (data || []).map((d) => d.excerpt);
+  },
+
+  // ——— scheduled loops (Phase 2: pipelines on a cadence, run by Vercel Cron) ———
+  // Cloud + real accounts only: the cron worker needs a real user row to attribute runs to.
+  loopsAvailable(session) { return isCloud && session && !session.demo; },
+
+  async getLoops(session) {
+    if (!this.loopsAvailable(session)) return [];
+    const { data } = await sb.from("loops").select("*").eq("user_id", session.id).order("created_at", { ascending: false });
+    return data || [];
+  },
+
+  async createLoop(session, { name, agents, input, cadence }) {
+    if (!this.loopsAvailable(session)) return { error: "Scheduled loops need a full (free) account." };
+    const { data, error } = await sb.from("loops")
+      .insert({ user_id: session.id, name, agents, input, cadence: cadence === "weekly" ? "weekly" : "daily" })
+      .select().single();
+    return error ? { error: error.message } : { loop: data };
+  },
+
+  async setLoopActive(session, id, active) {
+    if (!this.loopsAvailable(session)) return { error: "Not available" };
+    const { error } = await sb.from("loops").update({ active }).eq("id", id).eq("user_id", session.id);
+    return error ? { error: error.message } : {};
+  },
+
+  async deleteLoop(session, id) {
+    if (!this.loopsAvailable(session)) return { error: "Not available" };
+    const { error } = await sb.from("loops").delete().eq("id", id).eq("user_id", session.id);
+    return error ? { error: error.message } : {};
+  },
+
+  async getLoopRuns(session, limit = 10) {
+    if (!this.loopsAvailable(session)) return [];
+    const { data } = await sb.from("runs").select("*").eq("user_id", session.id).order("created_at", { ascending: false }).limit(limit);
+    return data || [];
   },
 
   /** Admin data. Cloud mode verifies the password server-side via /api/admin. */
