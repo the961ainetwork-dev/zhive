@@ -175,6 +175,13 @@ export const store = {
     return error ? { error: error.message } : {};
   },
 
+  // ——— Readiness Lab credits (server-enforced; this is display only) ———
+  async getLabCredits(session) {
+    if (!isCloud || !session || session.demo) return null;
+    const { data } = await sb.from("profiles").select("lab_credits").eq("id", session.id).single();
+    return data?.lab_credits ?? 0;
+  },
+
   // ——— verify & learn (Phase 3): thumbs feedback + approved-style examples ———
   async saveFeedback(session, { agentId, verdict, text, task }) {
     if (!session) return { error: "Sign in first" };
