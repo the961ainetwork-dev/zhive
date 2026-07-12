@@ -52,7 +52,7 @@ async function checkQuota(req) {
           headers: { apikey: svc, Authorization: `Bearer ${svc}`, "Content-Type": "application/json", Prefer: "return=minimal" },
           body: JSON.stringify({ type: "api_call", user_id: user.id }),
         }).catch(() => {});
-        return {};
+        return { userId: user.id };
       }
     } catch { /* fall through to anonymous limits */ }
   }
@@ -81,6 +81,27 @@ export default async function handler(req, res) {
 
     const quota = await checkQuota(req);
     if (quota.blocked) return res.status(429).json({ error: { message: quota.blocked } });
+
+    // ——— Readiness Lab credit gate: web-search calls are premium ———
+    if (webSearch) {
+      const supaUrl = process.env.SUPABASE_URL, svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!quota.userId || !supaUrl || !svc) {
+        return res.status(403).json({ error: { message: "The Readiness Lab needs a full (free) account — the 24h demo can't run it." } });
+      }
+      const pRes = await fetch(`${supaUrl}/rest/v1/profiles?select=lab_credits&id=eq.${quota.userId}`, {
+        headers: { apikey: svc, Authorization: `Bearer ${svc}` },
+      });
+      const [prof] = await pRes.json();
+      const credits = prof?.lab_credits ?? 0;
+      if (credits <= 0) {
+        return res.status(402).json({ error: { message: "You've used your Lab credits. Top up from the pricing section on the Lab page — your report picks up right where you left off." } });
+      }
+      await fetch(`${supaUrl}/rest/v1/profiles?id=eq.${quota.userId}`, {
+        method: "PATCH",
+        headers: { apikey: svc, Authorization: `Bearer ${svc}`, "Content-Type": "application/json", Prefer: "return=minimal" },
+        body: JSON.stringify({ lab_credits: credits - 1 }),
+      }).catch(() => {});
+    }
 
     const t = MODELS[tier] ? tier : "standard";
     const upstream = await fetch("https://api.anthropic.com/v1/messages", {
