@@ -1636,6 +1636,18 @@ function LabPage({ go, session }) {
   const [phase, setPhase] = useState(null); // null | reg | comp | synth | done
   const [out, setOut] = useState({}); // { reg: {text,sources}, comp: {...}, synth: {text,sources} }
   const [err, setErr] = useState(null);
+  // Deep Scrutiny (Lex) — stage B intake + legal risk register + law reading list
+  const [lex, setLex] = useState({
+    serviceType: "marketplace", holdsFunds: false, moneyFlow: "",
+    storage: "not-decided", crossBorder: false, processors: "",
+    entity: "", nationalities: "", licenses: "",
+    arabicContracts: false, refunds: "", staff: "none",
+  });
+  const [lexOut, setLexOut] = useState(null); // {text, sources}
+  const [lexRunning, setLexRunning] = useState(false);
+  const [lexErr, setLexErr] = useState(null);
+  const L = (k) => (e) => setLex((x) => ({ ...x, [k]: e.target.value }));
+  const LB = (k) => () => setLex((x) => ({ ...x, [k]: !x[k] }));
   const F = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const D = (k) => () => setForm((f) => ({ ...f, data: { ...f.data, [k]: !f.data[k] } }));
   const running = phase && phase !== "done";
@@ -1674,6 +1686,44 @@ function LabPage({ go, session }) {
       store.logEvent("run", session);
       setPhase("done");
     } catch (e) { setErr(e.message); setPhase(null); }
+  }
+
+  const lexIntake = () => `${intake()}
+SERVICE STRUCTURE: ${lex.serviceType}
+HOLDS CUSTOMER FUNDS: ${lex.holdsFunds ? "yes" : "no"}
+MONEY FLOW: ${lex.moneyFlow || "not specified"}
+DATA STORAGE / HOSTING: ${lex.storage}${lex.crossBorder ? " · transfers data across borders" : ""}
+THIRD-PARTY PROCESSORS: ${lex.processors || "not specified"}
+CORPORATE ENTITY: ${lex.entity || "not specified"}
+FOUNDER NATIONALITIES: ${lex.nationalities || "not specified"}
+EXISTING LICENSES: ${lex.licenses || "none stated"}
+ARABIC CONTRACTS/TOS: ${lex.arabicContracts ? "yes" : "no"}
+REFUND POLICY: ${lex.refunds || "not specified"}
+PEOPLE IN MARKET: ${lex.staff}`;
+
+  async function runLex() {
+    if (lexRunning || !out.reg) return;
+    setLexErr(null); setLexRunning(true);
+    try {
+      const r = await callClaudeSearch(
+        `You are LEX, the legal-scrutiny agent of the zhive.xyz Readiness Lab for ${form.market}, sector: ${LAB_SECTORS[form.sector].label[0]}. You are a readiness COACH, not a lawyer: your job is to find where this founder's SPECIFIC structure collides with the actual legal texts, then teach them exactly which laws to read and what to look for — so they arrive at licensed counsel prepared. Search the web for the current official texts before citing anything.
+
+Produce two sections with headings:
+
+## Legal Risk Register
+6-10 risks specific to THIS structure (not generic). For each: **Risk** — severity (HIGH/MEDIUM/LOW) — the specific law/regulation and article or section it stems from — why it applies to this exact setup — what document or answer their lawyer will ask for. Order by severity. If foreign ownership, agency law, fund-holding, data localization, consumer protection, labor classification, or Arabic-contract requirements are implicated by the intake, address them explicitly.
+
+## Your Law Reading List — coached
+The 5-8 primary legal texts this founder should personally read, each with: the official name (and number/year), where to find it (cite the official source you found via search), WHICH articles or chapters matter for this product, a one-line plain-language summary of what that part regulates, and ONE coaching question to answer while reading (e.g. "Reading art. 12-15, decide: does your checkout flow count as holding customer funds?"). Close with a short coach's note on reading order and how to bring findings to counsel.
+
+Rules: cite sources for every legal claim; where you are not certain of the current text, say so plainly; never present anything as legal advice — you prepare the founder for their lawyer, you do not replace one.`,
+        [{ role: "user", content: `${lexIntake()}\n\n=== ORIENTATION REPORT (context) ===\n${(out.reg?.text || "").slice(0, 3500)}` }],
+        3200
+      );
+      setLexOut(r);
+      store.logEvent("run", session);
+    } catch (e) { setLexErr(e.message); }
+    setLexRunning(false);
   }
 
   const Section = ({ title, data }) => data ? (
@@ -1767,6 +1817,72 @@ function LabPage({ go, session }) {
               <Section title={t("Readiness verdict & lawyer questions", "حكم الجاهزية وأسئلة المحامي")} data={out.synth} />
               {phase === "done" && (
                 <p className="dim-t small-t" style={{ marginTop: 10 }}>{t(LAB_DISCLAIMER_EN, LAB_DISCLAIMER_AR)}</p>
+              )}
+
+              {phase === "done" && (
+                <>
+                  <h2 className="sub" style={{ marginTop: 30 }}>{t("3 · Deep Scrutiny — Lex, your legal readiness coach", "3 · الفحص المعمّق — «لِكس»، مدرّبك للجاهزية القانونية")}</h2>
+                  <p className="dim-t">
+                    {t(
+                      "Answer a few structural questions and Lex scrutinizes your exact setup against the actual legal texts — producing a Legal Risk Register and a coached reading list of the laws themselves, with what to look for in each. You arrive at your lawyer prepared, not blank.",
+                      "أجب عن بضعة أسئلة بنيوية وسيفحص «لِكس» تركيبتك الفعلية في مواجهة النصوص القانونية نفسها — منتجًا سجلّ مخاطر قانونية وقائمة قراءة موجَّهة للقوانين ذاتها، مع ما تبحث عنه في كلٍّ منها. تصل إلى محاميك مستعدًا، لا فارغ اليدين."
+                    )}
+                  </p>
+                  <div className="ws-agent">
+                    <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
+                      <select value={lex.serviceType} onChange={L("serviceType")} style={{ padding: "8px 10px" }}>
+                        <option value="marketplace">{t("Marketplace (connect buyers & sellers)", "منصة وساطة (تربط بائعين ومشترين)")}</option>
+                        <option value="merchant-of-record">{t("Merchant of record (we sell directly)", "بائع مباشر")}</option>
+                        <option value="saas">{t("SaaS / software subscription", "برمجيات كخدمة / اشتراك")}</option>
+                        <option value="broker-agent">{t("Broker / agent / referrals", "وسيط / وكيل / إحالات")}</option>
+                        <option value="lender-bnpl">{t("Lending / BNPL / financing", "إقراض / اشترِ الآن وادفع لاحقًا / تمويل")}</option>
+                        <option value="care-provider">{t("Care provider / consultations", "مقدّم رعاية / استشارات")}</option>
+                      </select>
+                      <select value={lex.storage} onChange={L("storage")} style={{ padding: "8px 10px" }}>
+                        <option value="not-decided">{t("Hosting: not decided", "الاستضافة: لم تُحدَّد")}</option>
+                        <option value="in-market">{t("Hosted in the target market", "داخل السوق المستهدف")}</option>
+                        <option value="gcc">{t("Hosted in the GCC", "في الخليج")}</option>
+                        <option value="eu-us">{t("Hosted in EU / US", "في أوروبا / أميركا")}</option>
+                        <option value="mixed">{t("Mixed / multi-region", "مختلط")}</option>
+                      </select>
+                      <select value={lex.staff} onChange={L("staff")} style={{ padding: "8px 10px" }}>
+                        <option value="none">{t("No staff in market yet", "لا موظفين في السوق بعد")}</option>
+                        <option value="freelancers">{t("Freelancers in market", "مستقلّون في السوق")}</option>
+                        <option value="employees">{t("Employees in market", "موظفون في السوق")}</option>
+                      </select>
+                    </div>
+                    <input value={lex.moneyFlow} onChange={L("moneyFlow")} style={{ marginTop: 8 }}
+                      placeholder={t("Money flow: who pays whom, when, in what currency? (e.g. buyer pays us, we pay seller weekly minus 8%)", "تدفق الأموال: من يدفع لمن ومتى وبأي عملة؟")} />
+                    <div className="row" style={{ marginTop: 8, flexWrap: "wrap", gap: 12 }}>
+                      <label className="row" style={{ gap: 5 }}><input type="checkbox" checked={lex.holdsFunds} onChange={LB("holdsFunds")} /> <span className="small-t">{t("We hold customer funds at any point", "نحتفظ بأموال العملاء في أي مرحلة")}</span></label>
+                      <label className="row" style={{ gap: 5 }}><input type="checkbox" checked={lex.crossBorder} onChange={LB("crossBorder")} /> <span className="small-t">{t("Data crosses borders", "البيانات تعبر الحدود")}</span></label>
+                      <label className="row" style={{ gap: 5 }}><input type="checkbox" checked={lex.arabicContracts} onChange={LB("arabicContracts")} /> <span className="small-t">{t("Our contracts/ToS exist in Arabic", "عقودنا/شروطنا متوفرة بالعربية")}</span></label>
+                    </div>
+                    <div className="row" style={{ marginTop: 8, flexWrap: "wrap", gap: 8 }}>
+                      <input value={lex.entity} onChange={L("entity")} placeholder={t("Entity & jurisdiction (e.g. SARL Lebanon, DIFC Ltd, none yet)", "الكيان القانوني ومكانه")} style={{ flex: 1, minWidth: 200 }} />
+                      <input value={lex.nationalities} onChange={L("nationalities")} placeholder={t("Founder nationalities", "جنسيات المؤسسين")} style={{ flex: 1, minWidth: 160 }} />
+                    </div>
+                    <div className="row" style={{ marginTop: 8, flexWrap: "wrap", gap: 8 }}>
+                      <input value={lex.processors} onChange={L("processors")} placeholder={t("Third parties touching data/money (e.g. Stripe, AWS, Checkout.com)", "أطراف ثالثة تلمس البيانات/الأموال")} style={{ flex: 1, minWidth: 200 }} />
+                      <input value={lex.licenses} onChange={L("licenses")} placeholder={t("Licenses you already hold, if any", "تراخيص تملكها حاليًا، إن وُجدت")} style={{ flex: 1, minWidth: 160 }} />
+                    </div>
+                    <input value={lex.refunds} onChange={L("refunds")} style={{ marginTop: 8 }}
+                      placeholder={t("Refund/cancellation policy in one line", "سياسة الاسترجاع/الإلغاء في سطر واحد")} />
+                    <div className="row" style={{ marginTop: 12 }}>
+                      <button className="btn" onClick={runLex} disabled={lexRunning}>
+                        {lexRunning ? t("Lex is reading the law…", "«لِكس» يقرأ القانون…") : t("Run Deep Scrutiny →", "شغّل الفحص المعمّق ←")}
+                      </button>
+                      {lexErr && <span className="err">{lexErr}</span>}
+                    </div>
+                    {lexRunning && <p className="dim-t pulse" style={{ marginTop: 8 }}>{t("Searching official legal texts and building your risk register + reading list…", "يبحث في النصوص القانونية الرسمية ويبني سجلّ المخاطر وقائمة القراءة…")}</p>}
+                  </div>
+                  {lexOut && (
+                    <>
+                      <Section title={t("Legal risk register & your coached law reading list", "سجلّ المخاطر القانونية وقائمة قراءة القوانين الموجَّهة")} data={lexOut} />
+                      <p className="dim-t small-t" style={{ marginTop: 10 }}>{t(LAB_DISCLAIMER_EN, LAB_DISCLAIMER_AR)}</p>
+                    </>
+                  )}
+                </>
               )}
             </>
           )}
