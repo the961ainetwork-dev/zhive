@@ -437,6 +437,13 @@ const LAB_SECTORS = {
 const LAB_MARKETS = ["Saudi Arabia", "United Arab Emirates", "Egypt", "Lebanon"];
 
 const LAB_DISCLAIMER_EN = "This report is an AI-generated readiness assessment for research and orientation only. It is not legal, financial, or regulatory advice, may contain errors or omissions, and must be verified with qualified licensed counsel in the target market before acting.";
+// Top-ups are manual during beta: set your WhatsApp number here (international format, digits only).
+const CONTACT_WA = "96170000000"; // ← CHANGE THIS to your real WhatsApp number
+const LAB_PRICING = [
+  { name: ["Orientation Report", "تقرير التوجيه"], price: "$99", credits: 3, desc: ["Regulatory map + competitive field + readiness verdict for one product in one market.", "الخريطة التنظيمية + ساحة المنافسة + حكم الجاهزية لمنتج واحد في سوق واحد."] },
+  { name: ["Deep Scrutiny", "الفحص المعمّق"], price: "$249", credits: 8, desc: ["Everything in Orientation plus Lex: the Legal Risk Register and your coached law reading list. Two full runs included.", "كل ما في التوجيه إضافة إلى «لِكس»: سجلّ المخاطر القانونية وقائمة قراءة القوانين الموجَّهة. يشمل تقريرين كاملين."] },
+  { name: ["Investor Pack", "حزمة المستثمر"], price: "$899", credits: 40, desc: ["Ten full reports for due-diligence across a portfolio or pipeline of deals.", "عشرة تقارير كاملة للفحص النافي للجهالة عبر محفظة أو سلسلة صفقات."] },
+];
 const LAB_DISCLAIMER_AR = "هذا التقرير تقييم جاهزية مولّد بالذكاء الاصطناعي لأغراض البحث والتوجيه فقط، وليس استشارة قانونية أو مالية أو تنظيمية، وقد يتضمن أخطاء أو نواقص، ويجب التحقق منه مع مستشار قانوني مرخّص في السوق المستهدف قبل اتخاذ أي إجراء.";
 
 // ——— agent-to-agent handoffs (the L6 relay) ———
@@ -1648,6 +1655,14 @@ function LabPage({ go, session }) {
   const [lexErr, setLexErr] = useState(null);
   const L = (k) => (e) => setLex((x) => ({ ...x, [k]: e.target.value }));
   const LB = (k) => () => setLex((x) => ({ ...x, [k]: !x[k] }));
+  const [credits, setCredits] = useState(null);
+  const refreshCredits = () => { if (session && !session.demo) store.getLabCredits(session).then(setCredits); };
+  useEffect(refreshCredits, [session?.id]);
+  const fullAccount = session && !session.demo;
+  const waTopUp = (tier) => {
+    const msg = encodeURIComponent(`Hi zhive — I'd like to top up the Readiness Lab: ${tier.name[0]} (${tier.price}, ${tier.credits} credits). My account email: ${session?.email || ""}`);
+    window.open(`https://wa.me/${CONTACT_WA}?text=${msg}`, "_blank");
+  };
   const F = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const D = (k) => () => setForm((f) => ({ ...f, data: { ...f.data, [k]: !f.data[k] } }));
   const running = phase && phase !== "done";
@@ -1685,6 +1700,7 @@ function LabPage({ go, session }) {
       setOut((o) => ({ ...o, synth: { text: synth, sources: [] } }));
       store.logEvent("run", session);
       setPhase("done");
+      refreshCredits();
     } catch (e) { setErr(e.message); setPhase(null); }
   }
 
@@ -1722,6 +1738,7 @@ Rules: cite sources for every legal claim; where you are not certain of the curr
       );
       setLexOut(r);
       store.logEvent("run", session);
+      refreshCredits();
     } catch (e) { setLexErr(e.message); }
     setLexRunning(false);
   }
@@ -1758,14 +1775,24 @@ Rules: cite sources for every legal claim; where you are not certain of the curr
         <p className="dim-t small-t">{t(LAB_DISCLAIMER_EN, LAB_DISCLAIMER_AR)}</p>
       </section>
 
-      {!session ? (
+      {!fullAccount ? (
         <section className="section-sm">
-          <p>{t("The Lab needs an account (the free 24h demo works).", "يتطلب المختبر حسابًا (تكفي التجربة المجانية لـ24 ساعة).")}</p>
-          <button className="btn" onClick={() => go("auth")}>{t("Sign in to run the Lab →", "سجّل الدخول لتشغيل المختبر ←")}</button>
+          <p>
+            {session?.demo
+              ? t("The Lab runs live web research against official sources, so it needs a full (free) account — the 24h demo can't run it.", "يجري المختبر بحثًا حيًا في المصادر الرسمية، لذا يتطلب حسابًا كاملًا (مجانيًا) — التجربة لا تكفي لتشغيله.")
+              : t("The Lab needs a free account. Every new account includes 8 Lab credits — about two full reports.", "يتطلب المختبر حسابًا مجانيًا. كل حساب جديد يتضمن 8 أرصدة للمختبر — نحو تقريرين كاملين.")}
+          </p>
+          <button className="btn" onClick={() => go("auth")}>{t("Create a free account →", "أنشئ حسابًا مجانيًا ←")}</button>
         </section>
       ) : (
         <section className="section-sm">
-          <h2 className="sub">{t("1 · Describe your product", "1 · صِف منتجك")}</h2>
+          <div className="row spread">
+            <h2 className="sub">{t("1 · Describe your product", "1 · صِف منتجك")}</h2>
+            {credits !== null && (
+              <span className="tag">{t(`Lab credits: ${credits}`, `أرصدة المختبر: ${credits}`)}</span>
+            )}
+          </div>
+          <p className="dim-t small-t">{t("Each searched step costs 1 credit — a full report with Lex uses 3. New accounts start with 8.", "كل خطوة بحث تكلف رصيدًا واحدًا — التقرير الكامل مع «لِكس» يستهلك 3. الحسابات الجديدة تبدأ بـ8.")}</p>
           <div className="ws-agent">
             <input value={form.name} onChange={F("name")} placeholder={t("Product name", "اسم المنتج")} />
             <textarea rows={3} value={form.desc} onChange={F("desc")}
@@ -1886,6 +1913,29 @@ Rules: cite sources for every legal claim; where you are not certain of the curr
               )}
             </>
           )}
+
+          <h2 className="sub" style={{ marginTop: 34 }}>{t("Lab pricing — beta", "أسعار المختبر — النسخة التجريبية")}</h2>
+          <p className="dim-t">
+            {t(
+              "Card payments are coming; during beta, top-ups are activated manually within hours — tap a tier to message us on WhatsApp with your account email.",
+              "الدفع بالبطاقة قادم؛ خلال النسخة التجريبية تُفعَّل الأرصدة يدويًا خلال ساعات — اضغط على الباقة لمراسلتنا على واتساب مع بريد حسابك."
+            )}
+          </p>
+          {LAB_PRICING.map((p) => (
+            <div key={p.name[0]} className="ws-agent">
+              <div className="row spread">
+                <div>
+                  <strong>{t(p.name[0], p.name[1])}</strong>
+                  <span className="dim-t"> · {p.credits} {t("credits", "أرصدة")}</span>
+                </div>
+                <div className="row" style={{ gap: 12 }}>
+                  <strong>{p.price}</strong>
+                  <button className="btn small ghost" onClick={() => waTopUp(p)}>{t("Top up via WhatsApp →", "اشحن عبر واتساب ←")}</button>
+                </div>
+              </div>
+              <p className="dim-t" style={{ margin: "4px 0 0" }}>{t(p.desc[0], p.desc[1])}</p>
+            </div>
+          ))}
         </section>
       )}
     </main>
