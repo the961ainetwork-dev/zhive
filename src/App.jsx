@@ -282,6 +282,121 @@ async function runAgentTaskFor(session, agent, input, biz, onUpdate) {
   return runAgentTask(agent, input, biz, onUpdate, examples);
 }
 
+
+// ——— Phase A voice: talk to an agent in the browser (mic → STT → agent → TTS) ———
+// The reply matches the caller's spoken language and dialect — Arabic in, Arabic out.
+const blobToB64 = (blob) => new Promise((resolve, reject) => {
+  const r = new FileReader();
+  r.onload = () => resolve(String(r.result).split(",")[1]);
+  r.onerror = () => reject(new Error("Could not read audio"));
+  r.readAsDataURL(blob);
+});
+
+function VoiceTalk({ agent, biz }) {
+  const [recOn, setRecOn] = useState(false);
+  const [status, setStatus] = useState("idle"); // idle | listening | thinking | speaking
+  const [turns, setTurns] = useState([]); // { role: "user"|"agent", text }
+  const [err, setErr] = useState(null);
+  const mediaRef = useRef(null);
+  const chunksRef = useRef([]);
+  const histRef = useRef([]);
+
+  async function startRec() {
+    setErr(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size) chunksRef.current.push(e.data); };
+      mr.onstop = async () => { stream.getTracks().forEach((tr) => tr.stop()); await handleAudio(); };
+      mr.start();
+      mediaRef.current = mr;
+      setRecOn(true);
+      setStatus("listening");
+    } catch {
+      setErr(t("Microphone access was denied — allow it in your browser and try again.", "تم رفض الوصول إلى الميكروفون — اسمح به في المتصفح وحاول مجددًا."));
+    }
+  }
+  function stopRec() { try { mediaRef.current?.stop(); } catch { /* already stopped */ } setRecOn(false); }
+
+  async function handleAudio() {
+    try {
+      setStatus("thinking");
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      if (blob.size < 1200) { setStatus("idle"); return; } // ignore accidental taps
+      const b64 = await blobToB64(blob);
+
+      // 1) ears — transcribe
+      const tr = await fetch("/api/voice", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "transcribe", audio: b64, mime: "audio/webm" }),
+      }).then((r) => r.json());
+      if (tr.error) throw new Error(tr.error.message);
+      const userText = (tr.text || "").trim();
+      if (!userText) { setStatus("idle"); return; }
+      setTurns((ts) => [...ts, { role: "user", text: userText }]);
+      histRef.current.push({ role: "user", content: userText });
+
+      // 2) brain — short spoken reply from the agent (quota applies via /api/agent)
+      const voiceSystem =
+        `${agent.system}\n\nVOICE MODE: You are on a live voice call with the founder. Reply in 1-3 short spoken sentences — no markdown, no lists, no headings. Match the caller's language and dialect exactly (Arabic in → the same Arabic register out). Be warm, direct and useful.\n\n${bizContext(biz)}`;
+      const reply = await callClaude(voiceSystem, histRef.current.slice(-10), "light");
+      histRef.current.push({ role: "assistant", content: reply });
+      setTurns((ts) => [...ts, { role: "agent", text: reply }]);
+
+      // 3) mouth — speak it
+      setStatus("speaking");
+      const sp = await fetch("/api/voice", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "speak", text: reply }),
+      }).then((r) => r.json());
+      if (sp.error) throw new Error(sp.error.message);
+      const audio = new Audio(`data:${sp.mime};base64,${sp.audio}`);
+      audio.onended = () => setStatus("idle");
+      audio.onerror = () => setStatus("idle");
+      await audio.play().catch(() => setStatus("idle"));
+    } catch (e) {
+      setErr(e.message);
+      setStatus("idle");
+    }
+  }
+
+  const busy = status === "thinking" || status === "speaking";
+  return (
+    <div className="demo-out" style={{ marginTop: 18 }}>
+      <div className="row spread">
+        <span className="tag">{t("VOICE · beta", "صوت · تجريبي")}</span>
+        <span className="dim-t small-t">
+          {status === "listening" ? t("Listening… tap again to send", "أستمع… اضغط مجددًا للإرسال")
+            : status === "thinking" ? t("Thinking…", "أفكّر…")
+            : status === "speaking" ? t("Speaking…", "أتحدث…")
+            : t("Push to talk — the agent answers in your language", "اضغط وتكلّم — الوكيل يجيب بلغتك")}
+        </span>
+      </div>
+      <div className="row" style={{ marginTop: 10 }}>
+        <button
+          className="btn small"
+          onClick={recOn ? stopRec : startRec}
+          disabled={busy}
+          aria-pressed={recOn}
+        >
+          {recOn ? t("■ Stop & send", "■ أوقف وأرسل") : busy ? t("Working…", "جارٍ العمل…") : t("🎙 Talk to this agent", "🎙 تحدّث مع هذا الوكيل")}
+        </button>
+        {err && <span className="err">{err}</span>}
+      </div>
+      {turns.length > 0 && (
+        <div style={{ marginTop: 10 }}>
+          {turns.slice(-6).map((tn, i) => (
+            <p key={i} style={{ margin: "6px 0" }}>
+              <strong>{tn.role === "user" ? t("You", "أنت") : agent.name}:</strong> {tn.text}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ——— agent-to-agent handoffs (the L6 relay) ———
 // Wraps a specialist's delivered work as context and hands the job to the next agent.
 const handoffInput = (fromAgent, toAgent, originalTask, prevText) =>
@@ -1626,6 +1741,7 @@ function AgentPage({ agent, go, inCart, addToCart, session, biz }) {
                   busy={busy}
                 />
               )}
+              {session && <VoiceTalk agent={agent} biz={biz} />}
             </>
           )}
         </section>
