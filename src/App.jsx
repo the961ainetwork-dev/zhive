@@ -397,6 +397,48 @@ function VoiceTalk({ agent, biz }) {
   );
 }
 
+// ——— Readiness Lab: search-grounded call returning text + cited sources ———
+async function callClaudeSearch(system, messages, maxTokens = 2800) {
+  const res = await fetch("/api/agent", {
+    method: "POST",
+    headers: await apiHeaders(),
+    body: JSON.stringify({ tier: "deep", system, messages, webSearch: true, maxTokens }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || "API error");
+  const blocks = (data.content || []).filter((b) => b.type === "text");
+  const text = blocks.map((b) => b.text).join("\n");
+  const sources = [];
+  for (const b of blocks) {
+    for (const c of b.citations || []) {
+      if (c.url && !sources.find((s) => s.url === c.url)) sources.push({ url: c.url, title: c.title || c.url });
+    }
+  }
+  if (!text.trim()) throw new Error("Empty response — try again");
+  return { text, sources };
+}
+
+// The Lab's domain guidance: who regulates what, per sector. This is orientation for the
+// agent — it must still verify current facts via web search and cite them.
+const LAB_SECTORS = {
+  fintech: {
+    label: ["Fintech & payments", "التقنية المالية والمدفوعات"],
+    guide: "Key regulators to investigate per market — KSA: SAMA (banking/payments/BNPL, and the SAMA Regulatory Sandbox), CMA (securities/crowdfunding), CST (comms aspects), ZATCA (e-invoicing), SDAIA/PDPL (data). UAE: mainland CBUAE vs DIFC/DFSA vs ADGM/FSRA (three distinct regimes — flag the choice explicitly), plus the FSRA RegLab. Egypt: CBE (banking/payments law 194/2020), FRA (non-bank financial, fintech law 5/2022). Lebanon: BDL circulars, Capital Markets Authority.",
+  },
+  health: {
+    label: ["Health & telemedicine", "الصحة والطب عن بُعد"],
+    guide: "Key regulators — KSA: MoH, SFDA (devices/software as medical device), SCFHS (practitioner licensing), NHIC, SDAIA/PDPL with health-data localization rules. UAE: MoHAP, DHA (Dubai), DoH (Abu Dhabi) — telehealth licensing differs per emirate. Egypt: MoHP, EDA. Lebanon: MoPH, Order of Physicians. Always check cross-border teleconsultation and e-prescription rules, practitioner licensing reciprocity, and where health data must reside.",
+  },
+  ecommerce: {
+    label: ["E-commerce & retail", "التجارة الإلكترونية والتجزئة"],
+    guide: "Key regulators — KSA: Ministry of Commerce (E-Commerce Law), ZATCA (VAT + FATOORA e-invoicing phases), CST, SDAIA/PDPL, Saudi Central Bank for any embedded payments/BNPL. UAE: MoE, TDRA, emirate-level DED licenses, free-zone e-commerce licenses. Egypt: Consumer Protection Agency, ITIDA (e-signature), NTRA. Lebanon: MoET, e-transactions law 81/2018. Check consumer-protection returns rules, marketplace vs merchant-of-record status, customs de minimis for cross-border.",
+  },
+};
+const LAB_MARKETS = ["Saudi Arabia", "United Arab Emirates", "Egypt", "Lebanon"];
+
+const LAB_DISCLAIMER_EN = "This report is an AI-generated readiness assessment for research and orientation only. It is not legal, financial, or regulatory advice, may contain errors or omissions, and must be verified with qualified licensed counsel in the target market before acting.";
+const LAB_DISCLAIMER_AR = "هذا التقرير تقييم جاهزية مولّد بالذكاء الاصطناعي لأغراض البحث والتوجيه فقط، وليس استشارة قانونية أو مالية أو تنظيمية، وقد يتضمن أخطاء أو نواقص، ويجب التحقق منه مع مستشار قانوني مرخّص في السوق المستهدف قبل اتخاذ أي إجراء.";
+
 // ——— agent-to-agent handoffs (the L6 relay) ———
 // Wraps a specialist's delivered work as context and hands the job to the next agent.
 const handoffInput = (fromAgent, toAgent, originalTask, prevText) =>
@@ -538,7 +580,7 @@ export default function ZhiveApp() {
 
   // routing — state-driven, synced to real URLs (/admin, /directory, /agent/:id …)
   // so deep links, refreshes, and back/forward all work (vercel.json rewrites make Vercel serve the SPA).
-  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "agent", "cart", "auth", "workspace", "admin"];
+  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin"];
   const routeFromPath = () => {
     const parts = window.location.pathname.split("/").filter(Boolean);
     const view = parts[0] || "home";
@@ -651,6 +693,7 @@ export default function ZhiveApp() {
       {route.view === "directory" && <Directory go={go} inCart={inCart} addToCart={addToCart} />}
       {route.view === "method" && <MethodPage go={go} />}
       {route.view === "pipelines" && <PipelinesPage go={go} session={session} />}
+      {route.view === "lab" && <LabPage go={go} session={session} />}
       {route.view === "agent" && <AgentPage agent={getAgent(route.agentId)} go={go} inCart={inCart} addToCart={addToCart} session={session} biz={biz} />}
       {route.view === "cart" && <CartPage cart={cart} removeFromCart={removeFromCart} total={cartTotal} checkout={checkout} session={session} busy={busy} go={go} />}
       {route.view === "auth" && <AuthPage signup={signup} login={login} startDemo={startDemo} />}
@@ -676,6 +719,7 @@ function Header({ go, session, cart, logout, lang, setLang }) {
         <button className="link" onClick={() => go("directory")}>{t("Directory", "الدليل")}</button>
         <button className="link" onClick={() => go("method")}>{t("Method", "المنهجية")}</button>
         <button className="link" onClick={() => go("pipelines")}>{t("Pipelines", "خطوط الوكلاء")}</button>
+        <button className="link" onClick={() => go("lab")}>{t("Readiness Lab", "مختبر الجاهزية")}</button>
         <button className="link" onClick={() => go("about")}>{t("About", "من نحن")}</button>
         <button className="link" onClick={() => go("knowledge")}>{t("Knowledge", "المعرفة")}</button>
         <button className="link" onClick={() => go("cart")}>{t("Cart", "السلة")}{cart.length > 0 ? ` (${cart.length})` : ""}</button>
@@ -711,6 +755,37 @@ function Home({ go }) {
         <div className="row">
           <button className="btn" onClick={() => go("auth")}>{t("Start free — 24h demo", "ابدأ مجانًا — تجربة 24 ساعة")}</button>
           <button className="btn ghost" onClick={() => document.getElementById("layers")?.scrollIntoView({ behavior: "smooth" })}>{t("Browse agents ↓", "تصفّح الوكلاء ↓")}</button>
+        </div>
+      </section>
+
+      {/* what zhive is: agents + the Readiness Lab */}
+      <section className="section">
+        <p className="eyebrow">{t("What zhive is", "ما هي zhive")}</p>
+        <h2>{t("Two ways one hive works for you", "خليّة واحدة تعمل لأجلك بطريقتين")}</h2>
+        <div className="ws-agent">
+          <strong>{t("① An AI workforce that does the work", "① فريق ذكاء اصطناعي ينجز العمل")}</strong>
+          <p style={{ margin: "6px 0 0" }}>
+            {t(
+              "Rent specialist AI agents — strategy, finance, marketing, operations and more — that read your business profile once and then produce real deliverables: plans, forecasts, content, reports. Chain them into pipelines where each agent builds on the last, put a pipeline on a daily or weekly schedule so it runs while you sleep, and approve the results you like so every agent learns your style. In English or in Arabic — your choice.",
+              "استأجر وكلاء ذكاء اصطناعي متخصصين — استراتيجية، مالية، تسويق، عمليات وغيرها — يقرؤون ملف نشاطك مرة واحدة ثم ينتجون مخرجات حقيقية: خطط، توقعات، محتوى، تقارير. اربطهم في خطوط عمل يبني فيها كل وكيل على عمل سابقه، وضع الخط على جدول يومي أو أسبوعي ليعمل وأنت نائم، ووافق على النتائج التي تعجبك ليتعلم كل وكيل أسلوبك. بالإنجليزية أو بالعربية — الخيار لك."
+            )}
+          </p>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button className="btn small" onClick={() => go("directory")}>{t("Browse the agents →", "تصفّح الوكلاء ←")}</button>
+            <button className="btn small ghost" onClick={() => go("pipelines")}>{t("How pipelines work", "كيف تعمل خطوط الوكلاء")}</button>
+          </div>
+        </div>
+        <div className="ws-agent">
+          <strong>{t("② A Readiness Lab that de-risks your next market", "② مختبر جاهزية يقلّل مخاطر سوقك القادم")}</strong>
+          <p style={{ margin: "6px 0 0" }}>
+            {t(
+              "Before you spend on entering Saudi, the UAE, Egypt or Lebanon, test your product against the laws, regulators and competitors of that market. Describe it once; deep agents with live web search map the regulators that own you, the license path, the red flags and the competitive field — then hand you a cited readiness report with the exact questions to bring to your lawyer. Built first for fintech, health & telemedicine, and e-commerce. Research and orientation — not legal advice.",
+              "قبل أن تنفق على دخول السعودية أو الإمارات أو مصر أو لبنان، اختبر منتجك في مواجهة قوانين ذلك السوق وجهاته التنظيمية ومنافسيه. صِفه مرة واحدة؛ وكلاء متعمّقون ببحث حي على الإنترنت يرسمون خريطة الجهات التنظيمية، مسار الترخيص، نقاط الخطر وساحة المنافسة — ثم يسلّمونك تقرير جاهزية موثّق المصادر مع الأسئلة الدقيقة التي تحملها إلى محاميك. بُني أولًا للتقنية المالية، الصحة والطب عن بُعد، والتجارة الإلكترونية. بحث وتوجيه — وليس استشارة قانونية."
+            )}
+          </p>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button className="btn small" onClick={() => go("lab")}>{t("Open the Readiness Lab →", "افتح مختبر الجاهزية ←")}</button>
+          </div>
         </div>
       </section>
 
@@ -1547,6 +1622,156 @@ function PipelinesPage({ go, session }) {
           <button className="btn ghost" onClick={() => go("article", "loop-engineering")}>Read: The Advent of Loop Engineering</button>
         </div>
       </section>
+    </main>
+  );
+}
+
+
+// ════════ READINESS LAB — test your product against laws, regulators, and competitors ════════
+function LabPage({ go, session }) {
+  const [form, setForm] = useState({
+    name: "", desc: "", sector: "fintech", market: "Saudi Arabia",
+    model: "", data: { payments: false, personal: false, health: false }, stage: "pre-launch",
+  });
+  const [phase, setPhase] = useState(null); // null | reg | comp | synth | done
+  const [out, setOut] = useState({}); // { reg: {text,sources}, comp: {...}, synth: {text,sources} }
+  const [err, setErr] = useState(null);
+  const F = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const D = (k) => () => setForm((f) => ({ ...f, data: { ...f.data, [k]: !f.data[k] } }));
+  const running = phase && phase !== "done";
+
+  const intake = () => {
+    const dataTypes = Object.entries(form.data).filter(([, v]) => v).map(([k]) => ({ payments: "payment flows / customer funds", personal: "personal data (PII)", health: "health / medical data" }[k])).join(", ") || "not specified";
+    return `PRODUCT: ${form.name || "Unnamed product"}\nDESCRIPTION: ${form.desc}\nSECTOR: ${LAB_SECTORS[form.sector].label[0]}\nTARGET MARKET: ${form.market}\nBUSINESS MODEL: ${form.model || "not specified"}\nDATA HANDLED: ${dataTypes}\nSTAGE: ${form.stage}`;
+  };
+
+  async function runLab() {
+    if (!form.desc.trim() || running) return;
+    setErr(null); setOut({}); setPhase("reg");
+    const guide = LAB_SECTORS[form.sector].guide;
+    try {
+      // Step 1 — regulatory map (search-grounded)
+      const reg = await callClaudeSearch(
+        `You are the Regulatory Mapping agent of the zhive.xyz Readiness Lab, specialized in ${form.market} for the ${LAB_SECTORS[form.sector].label[0]} sector. Orientation (verify everything with current web searches — regulations change): ${guide}\n\nProduce a REGULATORY MAP for the product described: (1) which regulators have jurisdiction and why, (2) the most likely license category or registration path with typical requirements, (3) applicable regulatory sandbox programs if any, (4) RED FLAGS — data residency, localization, capital, ownership or product-structure issues that could block entry, (5) typical timeline. Use headings. Search the web for current official sources and base claims on them. Be specific with regulator names and rule references. If something is uncertain, say so explicitly. Never present this as legal advice.`,
+        [{ role: "user", content: intake() }]
+      );
+      setOut((o) => ({ ...o, reg })); setPhase("comp");
+
+      // Step 2 — competitive field (search-grounded)
+      const comp = await callClaudeSearch(
+        `You are the Competitive Field agent of the zhive.xyz Readiness Lab for ${form.market}. Search the web for CURRENT information. Produce: (1) the 4-7 most relevant licensed/operating competitors for this product in ${form.market} with one line each on their position, (2) how crowded and funded the space is, (3) visible gaps or underserved segments, (4) a realistic wedge this product could take, (5) local ecosystem notes (platforms, distribution channels, partnerships that matter). Use headings. Cite sources. Be honest if the space looks saturated.`,
+        [{ role: "user", content: intake() }]
+      );
+      setOut((o) => ({ ...o, comp })); setPhase("synth");
+
+      // Step 3 — synthesis: readiness verdict, adaptation checklist, lawyer questions
+      const synth = await callClaude(
+        `You are the Readiness Synthesis agent of the zhive.xyz Readiness Lab. You receive a regulatory map and a competitive analysis for a product entering ${form.market}. Produce the final section of the readiness report: (1) READINESS SCORE out of 10 with a two-sentence justification, (2) ADAPTATION CHECKLIST — what must change in the product before entry, ordered cheapest to most expensive, (3) GO / ADJUST / RETHINK verdict with reasoning, (4) "10 QUESTIONS FOR YOUR LAWYER" — the exact questions this founder should bring to licensed counsel in ${form.market}, (5) suggested next 30 days. Use headings. Be direct and honest — an inflated score harms the founder.`,
+        [{ role: "user", content: `${intake()}\n\n=== REGULATORY MAP ===\n${reg.text.slice(0, 5000)}\n\n=== COMPETITIVE FIELD ===\n${comp.text.slice(0, 5000)}` }],
+        "deep"
+      );
+      setOut((o) => ({ ...o, synth: { text: synth, sources: [] } }));
+      store.logEvent("run", session);
+      setPhase("done");
+    } catch (e) { setErr(e.message); setPhase(null); }
+  }
+
+  const Section = ({ title, data }) => data ? (
+    <div className="ws-agent">
+      <div className="row spread">
+        <strong>{title}</strong>
+        <button className="link" onClick={() => waShare(data.text)}>{t("Send to WhatsApp →", "أرسل إلى واتساب ←")}</button>
+      </div>
+      <Markdown text={data.text} />
+      {data.sources?.length > 0 && (
+        <p className="dim-t small-t" style={{ marginTop: 8 }}>
+          {t("Sources: ", "المصادر: ")}
+          {data.sources.slice(0, 8).map((s, i) => (
+            <span key={s.url}>{i > 0 && " · "}<a href={s.url} target="_blank" rel="noreferrer" className="link">{(s.title || s.url).slice(0, 60)}</a></span>
+          ))}
+        </p>
+      )}
+    </div>
+  ) : null;
+
+  return (
+    <main className="wrap">
+      <section className="section">
+        <p className="eyebrow">{t("Readiness Lab · beta", "مختبر الجاهزية · تجريبي")}</p>
+        <h1>{t("Test your product against the laws, regulators, and competitors of Arab markets.", "اختبر منتجك في مواجهة القوانين والجهات التنظيمية والمنافسين في الأسواق العربية.")}</h1>
+        <p className="lede">
+          {t(
+            "Describe your product once. Three deep agents — armed with live web search — map the regulators that own you, scan the competitive field, and hand you a cited readiness report with the exact questions to bring to your lawyer. A month of orientation, compressed into minutes.",
+            "صِف منتجك مرة واحدة. ثلاثة وكلاء متعمّقين — مزوّدين ببحث حي على الإنترنت — يرسمون خريطة الجهات التنظيمية، يمسحون ساحة المنافسة، ويسلّمونك تقرير جاهزية موثّق المصادر مع الأسئلة الدقيقة التي تحملها إلى محاميك."
+          )}
+        </p>
+        <p className="dim-t small-t">{t(LAB_DISCLAIMER_EN, LAB_DISCLAIMER_AR)}</p>
+      </section>
+
+      {!session ? (
+        <section className="section-sm">
+          <p>{t("The Lab needs an account (the free 24h demo works).", "يتطلب المختبر حسابًا (تكفي التجربة المجانية لـ24 ساعة).")}</p>
+          <button className="btn" onClick={() => go("auth")}>{t("Sign in to run the Lab →", "سجّل الدخول لتشغيل المختبر ←")}</button>
+        </section>
+      ) : (
+        <section className="section-sm">
+          <h2 className="sub">{t("1 · Describe your product", "1 · صِف منتجك")}</h2>
+          <div className="ws-agent">
+            <input value={form.name} onChange={F("name")} placeholder={t("Product name", "اسم المنتج")} />
+            <textarea rows={3} value={form.desc} onChange={F("desc")}
+              placeholder={t("What does it do, for whom, and how does it make money? Be concrete.", "ماذا يفعل، لمن، وكيف يحقق الدخل؟ كن محددًا.")} style={{ marginTop: 8 }} />
+            <div className="row" style={{ marginTop: 8, flexWrap: "wrap", gap: 8 }}>
+              <select value={form.sector} onChange={F("sector")} style={{ padding: "8px 10px" }}>
+                {Object.entries(LAB_SECTORS).map(([k, v]) => <option key={k} value={k}>{t(v.label[0], v.label[1])}</option>)}
+              </select>
+              <select value={form.market} onChange={F("market")} style={{ padding: "8px 10px" }}>
+                {LAB_MARKETS.map((m) => <option key={m}>{m}</option>)}
+              </select>
+              <select value={form.stage} onChange={F("stage")} style={{ padding: "8px 10px" }}>
+                <option value="idea">{t("Idea stage", "مرحلة الفكرة")}</option>
+                <option value="pre-launch">{t("Built, pre-launch", "جاهز، قبل الإطلاق")}</option>
+                <option value="live-elsewhere">{t("Live in another market", "يعمل في سوق آخر")}</option>
+              </select>
+            </div>
+            <input value={form.model} onChange={F("model")} placeholder={t("Business model (e.g. commission per transaction, SaaS subscription…)", "نموذج العمل (مثلاً عمولة على كل عملية، اشتراك شهري…)")} style={{ marginTop: 8 }} />
+            <div className="row" style={{ marginTop: 8, flexWrap: "wrap", gap: 10 }}>
+              <span className="dim-t small-t">{t("Your product touches:", "منتجك يتعامل مع:")}</span>
+              {[["payments", t("Payments / customer funds", "مدفوعات / أموال العملاء")], ["personal", t("Personal data", "بيانات شخصية")], ["health", t("Health data", "بيانات صحية")]].map(([k, lbl]) => (
+                <label key={k} className="row" style={{ gap: 5 }}>
+                  <input type="checkbox" checked={form.data[k]} onChange={D(k)} /> <span className="small-t">{lbl}</span>
+                </label>
+              ))}
+            </div>
+            <div className="row" style={{ marginTop: 12 }}>
+              <button className="btn" onClick={runLab} disabled={running || !form.desc.trim()}>
+                {running ? t("Running the Lab…", "المختبر يعمل…") : t("Run the Readiness Lab →", "شغّل مختبر الجاهزية ←")}
+              </button>
+              {err && <span className="err">{err}</span>}
+            </div>
+            {running && (
+              <p className="dim-t pulse" style={{ marginTop: 10 }}>
+                {phase === "reg" && t("① Regulatory Mapping agent is searching official sources…", "① وكيل الخريطة التنظيمية يبحث في المصادر الرسمية…")}
+                {phase === "comp" && t("② Competitive Field agent is scanning the market…", "② وكيل ساحة المنافسة يمسح السوق…")}
+                {phase === "synth" && t("③ Synthesis agent is scoring readiness and drafting your lawyer questions…", "③ وكيل التوليف يقيّم الجاهزية ويصيغ أسئلة المحامي…")}
+              </p>
+            )}
+          </div>
+
+          {(out.reg || out.comp || out.synth) && (
+            <>
+              <h2 className="sub" style={{ marginTop: 26 }}>
+                {t("2 · Market Entry Readiness Report", "2 · تقرير جاهزية دخول السوق")} — {form.name || t("your product", "منتجك")} · {form.market}
+              </h2>
+              <Section title={t("Regulatory map", "الخريطة التنظيمية")} data={out.reg} />
+              <Section title={t("Competitive field", "ساحة المنافسة")} data={out.comp} />
+              <Section title={t("Readiness verdict & lawyer questions", "حكم الجاهزية وأسئلة المحامي")} data={out.synth} />
+              {phase === "done" && (
+                <p className="dim-t small-t" style={{ marginTop: 10 }}>{t(LAB_DISCLAIMER_EN, LAB_DISCLAIMER_AR)}</p>
+              )}
+            </>
+          )}
+        </section>
+      )}
     </main>
   );
 }
