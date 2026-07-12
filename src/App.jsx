@@ -2,6 +2,13 @@ import React, { useState, useEffect } from "react";
 import { store, isCloud } from "./lib/store.js";
 import LoopLab from "./LoopLab.jsx";
 
+// ——— i18n: Arabic-first experience ———
+// LANG is set from state on every render of the root app; t(en, ar) picks the string.
+// UI chrome is translated here; long-form content (essays, agent case studies) stays EN for now.
+const LANG_KEY = "zhive-lang";
+let LANG = "en";
+const t = (en, ar) => (LANG === "ar" ? ar : en);
+
 // ————————————————————————————————————————————————————————
 // ZHIVE.XYZ — the AI operating hive for startups · MENA-first
 // Black-on-white minimalist · horizontal accordion sections
@@ -236,7 +243,10 @@ async function runAgentTask(agent, input, biz, onUpdate, examples) {
   const exBlock = examples?.length
     ? `Style guide — work this founder previously approved. Match its tone, specificity, language and format (do not copy its content):\n${examples.map((e, i) => `--- approved example ${i + 1} ---\n${String(e).slice(0, 900)}`).join("\n")}\n--- end examples ---\n\n`
     : "";
-  const userMsg = `${bizContext(biz)}${exBlock}Task from the founder:\n${input}\n\nProduce your specialist work now.`;
+  const langDirective = LANG === "ar"
+    ? `\n\nاللغة: اكتب الناتج بالكامل باللغة العربية (فصحى مبسّطة مناسبة للأعمال، مع إبقاء المصطلحات التقنية الإنجليزية عند الحاجة)، إلا إذا حدّد المؤسس لغة أخرى في ملف النشاط أو نص المهمة.`
+    : "";
+  const userMsg = `${bizContext(biz)}${exBlock}Task from the founder:\n${input}\n\nProduce your specialist work now.${langDirective}`;
   if (onUpdate) onUpdate({ phase: "drafting", text: "" });
   let text = await callClaudeStream(
     agent.system,
@@ -346,7 +356,7 @@ function ChainView({ steps, live, onFeedback }) {
                   <button className="link" title="Not what I wanted" onClick={() => onFeedback(i, "down")}>👎</button>
                 </>
               ))}
-              <button className="link" onClick={() => waShare(s.text)}>Send to WhatsApp →</button>
+              <button className="link" onClick={() => waShare(s.text)}>{t("Send to WhatsApp →", "أرسل إلى واتساب ←")}</button>
             </span>
           </div>
           <Markdown text={s.text} />
@@ -379,13 +389,13 @@ function HandoffBar({ currentId, options, onHandoff, busy }) {
         style={{ padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, background: "#fff", maxWidth: 320 }}
         aria-label="Hand off to another agent"
       >
-        <option value="">Hand off to another agent…</option>
+        <option value="">{t("Hand off to another agent…", "سلّم العمل إلى وكيل آخر…")}</option>
         {list.map((a) => (
           <option key={a.id} value={a.id}>{a.name} · {a.layerName}</option>
         ))}
       </select>
       <button className="btn small ghost" disabled={busy || !to} onClick={() => { onHandoff(to); setTo(""); }}>
-        Hand off →
+        {t("Hand off →", "سلّم ←")}
       </button>
     </div>
   );
@@ -400,6 +410,17 @@ const timeLeft = (expires) => {
 
 // ════════════════════════════════════════════════════════
 export default function ZhiveApp() {
+  // language (Arabic-first): persisted, drives document direction
+  const [lang, setLang] = useState(() => {
+    try { return localStorage.getItem(LANG_KEY) === "ar" ? "ar" : "en"; } catch { return "en"; }
+  });
+  LANG = lang; // module-level so t() works everywhere below this render
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    try { localStorage.setItem(LANG_KEY, lang); } catch { /* private mode */ }
+  }, [lang]);
+
   // routing — state-driven, synced to real URLs (/admin, /directory, /agent/:id …)
   // so deep links, refreshes, and back/forward all work (vercel.json rewrites make Vercel serve the SPA).
   const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "agent", "cart", "auth", "workspace", "admin"];
@@ -507,7 +528,7 @@ export default function ZhiveApp() {
   return (
     <div className="app">
       <style>{CSS}</style>
-      <Header route={route} go={go} session={session} cart={cart} logout={logout} />
+      <Header route={route} go={go} session={session} cart={cart} logout={logout} lang={lang} setLang={setLang} />
       {route.view === "home" && <Home go={go} />}
       {route.view === "about" && <AboutPage go={go} />}
       {route.view === "knowledge" && <KnowledgePage go={go} />}
@@ -521,7 +542,7 @@ export default function ZhiveApp() {
       {route.view === "workspace" && <Workspace session={session} purchases={purchases} myOrders={myOrders} biz={biz} saveBiz={saveBiz} go={go} startDemo={startDemo} />}
       {route.view === "admin" && <Admin />}
       <footer className="foot">
-        <span>zhive.xyz — {isCloud ? "connected to Supabase" : "prototype mode (in-memory data)"} · AI-generated planning material; verify before acting. No real payments are processed.</span>
+        <span>zhive.xyz — {isCloud ? t("connected to Supabase", "متصل بقاعدة البيانات") : t("prototype mode (in-memory data)", "وضع النموذج التجريبي")} · {t("AI-generated planning material; verify before acting. No real payments are processed.", "محتوى تخطيطي مولّد بالذكاء الاصطناعي؛ تحقق قبل التنفيذ. لا تُعالج أي مدفوعات حقيقية.")}</span>
         <button className="link dim" onClick={() => go("admin")}>/admin</button>
       </footer>
     </div>
@@ -529,27 +550,30 @@ export default function ZhiveApp() {
 }
 
 // ════════ HEADER ════════
-function Header({ go, session, cart, logout }) {
+function Header({ go, session, cart, logout, lang, setLang }) {
   return (
     <header className="hdr">
       <button className="brand" onClick={() => go("home")}>
         <span className="hex">z</span> <span className="brand-name">ZHIVE.XYZ</span>
       </button>
       <nav className="nav">
-        <button className="link" onClick={() => go("home")}>Hive</button>
-        <button className="link" onClick={() => go("directory")}>Directory</button>
-        <button className="link" onClick={() => go("method")}>Method</button>
-        <button className="link" onClick={() => go("pipelines")}>Pipelines</button>
-        <button className="link" onClick={() => go("about")}>About</button>
-        <button className="link" onClick={() => go("knowledge")}>Knowledge</button>
-        <button className="link" onClick={() => go("cart")}>Cart{cart.length > 0 ? ` (${cart.length})` : ""}</button>
+        <button className="link" onClick={() => go("home")}>{t("Hive", "الخلية")}</button>
+        <button className="link" onClick={() => go("directory")}>{t("Directory", "الدليل")}</button>
+        <button className="link" onClick={() => go("method")}>{t("Method", "المنهجية")}</button>
+        <button className="link" onClick={() => go("pipelines")}>{t("Pipelines", "خطوط الوكلاء")}</button>
+        <button className="link" onClick={() => go("about")}>{t("About", "من نحن")}</button>
+        <button className="link" onClick={() => go("knowledge")}>{t("Knowledge", "المعرفة")}</button>
+        <button className="link" onClick={() => go("cart")}>{t("Cart", "السلة")}{cart.length > 0 ? ` (${cart.length})` : ""}</button>
+        <button className="link" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label="Switch language" style={{ fontWeight: 700 }}>
+          {lang === "ar" ? "EN" : "عربي"}
+        </button>
         {session ? (
           <>
-            <button className="link" onClick={() => go("workspace")}>Workspace</button>
-            <button className="link dim" onClick={logout}>Log out</button>
+            <button className="link" onClick={() => go("workspace")}>{t("Workspace", "مساحة العمل")}</button>
+            <button className="link dim" onClick={logout}>{t("Log out", "خروج")}</button>
           </>
         ) : (
-          <button className="btn small" onClick={() => go("auth")}>Sign in</button>
+          <button className="btn small" onClick={() => go("auth")}>{t("Sign in", "تسجيل الدخول")}</button>
         )}
       </nav>
     </header>
@@ -561,22 +585,24 @@ function Home({ go }) {
   return (
     <main className="wrap">
       <section className="hero">
-        <p className="eyebrow">Ideation → implementation · MENA-first</p>
-        <h1>Every department your startup needs.<br />Running as one hive.</h1>
+        <p className="eyebrow">{t("Ideation → implementation · MENA-first", "من الفكرة إلى التنفيذ · الشرق الأوسط أولاً")}</p>
+        <h1>{t("Every department your startup needs.", "كل الأقسام التي تحتاجها شركتك الناشئة.")}<br />{t("Running as one hive.", "تعمل كخليّة واحدة.")}</h1>
         <p className="lede">
-          zhive.xyz deploys specialist AI agents across six interconnected layers — executive strategy, revenue,
-          operations, product, intelligence, and infrastructure — and hands you one unified COO report you can act on today.
+          {t(
+            "zhive.xyz deploys specialist AI agents across six interconnected layers — executive strategy, revenue, operations, product, intelligence, and infrastructure — and hands you one unified COO report you can act on today.",
+            "تنشر zhive.xyz وكلاء ذكاء اصطناعي متخصصين عبر ست طبقات مترابطة — الاستراتيجية التنفيذية، الإيرادات، العمليات، المنتج، الاستخبارات، والبنية التحتية — وتسلّمك تقريرًا موحّدًا بمستوى مدير عمليات تتصرف بناءً عليه اليوم."
+          )}
         </p>
         <div className="row">
-          <button className="btn" onClick={() => go("auth")}>Start free — 24h demo</button>
-          <button className="btn ghost" onClick={() => document.getElementById("layers")?.scrollIntoView({ behavior: "smooth" })}>Browse agents ↓</button>
+          <button className="btn" onClick={() => go("auth")}>{t("Start free — 24h demo", "ابدأ مجانًا — تجربة 24 ساعة")}</button>
+          <button className="btn ghost" onClick={() => document.getElementById("layers")?.scrollIntoView({ behavior: "smooth" })}>{t("Browse agents ↓", "تصفّح الوكلاء ↓")}</button>
         </div>
       </section>
 
       {/* how it works — horizontal accordion */}
       <section className="section">
-        <p className="eyebrow">How it works</p>
-        <h2>From intake to insight in 4 steps</h2>
+        <p className="eyebrow">{t("How it works", "كيف تعمل")}</p>
+        <h2>{t("From intake to insight in 4 steps", "من المهمة إلى الرؤية في 4 خطوات")}</h2>
         <HAccordion
           items={STEPS}
           height={190}
@@ -744,8 +770,8 @@ function AboutPage({ go }) {
 
       {/* loop teaser + live lab */}
       <section className="section">
-        <p className="eyebrow">Beyond prompt engineering</p>
-        <h2>The next generation is driven by Loop Engineering</h2>
+        <p className="eyebrow">{t("Beyond prompt engineering", "ما بعد هندسة الأوامر")}</p>
+        <h2>{t("The next generation is driven by Loop Engineering", "الجيل القادم تقوده هندسة الحلقات")}</h2>
         <p className="lede">
           The first generation of AI relied on prompts: people asked, AI answered. Loop Engineering designs
           continuous cycles of intelligent work — observe, reason, execute, verify, learn — that transform
@@ -757,9 +783,9 @@ function AboutPage({ go }) {
         </p>
         <LoopLab />
         <div className="row" style={{ marginTop: 18 }}>
-          <button className="btn" onClick={() => go("pipelines")}>How pipelines work →</button>
-          <button className="btn ghost" onClick={() => go("article", "loop-engineering")}>Read the essay</button>
-          <button className="btn ghost" onClick={() => go("auth")}>Build your AI workforce</button>
+          <button className="btn" onClick={() => go("pipelines")}>{t("How pipelines work →", "كيف تعمل خطوط الوكلاء ←")}</button>
+          <button className="btn ghost" onClick={() => go("article", "loop-engineering")}>{t("Read the essay", "اقرأ المقال")}</button>
+          <button className="btn ghost" onClick={() => go("auth")}>{t("Build your AI workforce", "ابنِ فريقك الذكي")}</button>
         </div>
       </section>
     </main>
@@ -1773,8 +1799,9 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
     if (!st.input?.trim()) { setP(p.id, { err: "Write the task first — that's what the loop will run on schedule." }); return; }
     const agents = p.agentIds.map(getAgent).filter(Boolean).slice(0, 3)
       .map((a) => ({ id: a.id, name: a.name, system: a.system, tier: a.tier || "standard" }));
+    const loopInput = (LANG === "ar" ? "(اكتب الناتج بالكامل باللغة العربية) " : "") + st.input.trim();
     const r = await store.createLoop(session, {
-      name: p.name, agents, input: st.input.trim(), cadence: st.cadence === "weekly" ? "weekly" : "daily",
+      name: p.name, agents, input: loopInput, cadence: st.cadence === "weekly" ? "weekly" : "daily",
     });
     if (r.error) { setP(p.id, { err: r.error }); return; }
     setLoops((l) => [r.loop, ...l]);
@@ -1921,7 +1948,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
                     style={{ maxWidth: 300 }}
                   />
                   <button className="btn small ghost" disabled={!(st.pipeName || "").trim()} onClick={() => saveAsPipeline(id)}>
-                    Save pipeline
+                    {t("Save pipeline", "احفظ الخط")}
                   </button>
                   {st.pipeSaved && <span className="dim-t small-t">Saved ✓ — find it under Pipelines</span>}
                 </div>
@@ -1932,7 +1959,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
       </section>
 
       <section className="section-sm">
-        <h2 className="sub">Pipelines</h2>
+        <h2 className="sub">{t("Pipelines", "خطوط الوكلاء")}</h2>
         <p className="dim-t">
           Reusable agent chains — one input runs every agent in sequence, each building on the last.
           Save your own from any multi-agent chain above, or run a curated one.{" "}
@@ -1973,11 +2000,11 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
                       <>
                         <select value={st.cadence || "daily"} onChange={(e) => setP(p.id, { cadence: e.target.value })}
                           style={{ padding: "6px 8px" }} aria-label="Loop cadence">
-                          <option value="daily">every day</option>
-                          <option value="weekly">every week</option>
+                          <option value="daily">{t("every day", "كل يوم")}</option>
+                          <option value="weekly">{t("every week", "كل أسبوع")}</option>
                         </select>
                         <button className="btn small ghost" onClick={() => scheduleLoop(p)} disabled={!!st.live}>
-                          ⟳ Run on a schedule
+                          {t("⟳ Run on a schedule", "⟳ شغّل بجدول زمني")}
                         </button>
                         {st.scheduled && <span className="dim-t small-t">Loop created ✓ — see Active loops below</span>}
                       </>
@@ -1996,7 +2023,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
 
       {store.loopsAvailable(session) && (
         <section className="section-sm">
-          <h2 className="sub">Active loops</h2>
+          <h2 className="sub">{t("Active loops", "الحلقات النشطة")}</h2>
           <p className="dim-t">
             Pipelines on a schedule — they run on zhive's servers even when you're offline, and every result
             lands here (and in your inbox, once email delivery is configured). This is loop engineering, live.
@@ -2012,8 +2039,8 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
                 </div>
                 <div className="row" style={{ gap: 10 }}>
                   <span className="tag">{l.active ? "ACTIVE" : "PAUSED"}</span>
-                  <button className="link" onClick={() => toggleLoop(l)}>{l.active ? "Pause" : "Resume"}</button>
-                  <button className="link dim" onClick={() => removeLoop(l.id)}>Delete</button>
+                  <button className="link" onClick={() => toggleLoop(l)}>{l.active ? t("Pause", "إيقاف مؤقت") : t("Resume", "استئناف")}</button>
+                  <button className="link dim" onClick={() => removeLoop(l.id)}>{t("Delete", "حذف")}</button>
                 </div>
               </div>
               <p className="dim-t" style={{ margin: "4px 0 0" }}>
@@ -2036,7 +2063,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
                         <span className="dim-t"> · {new Date(r.created_at).toLocaleString()} · {(r.steps || []).length} step{(r.steps || []).length > 1 ? "s" : ""}</span>
                         {r.status !== "ok" && <span className="err" style={{ marginLeft: 8 }}>failed</span>}
                       </div>
-                      <button className="link" onClick={() => setOpenRun(open ? null : r.id)}>{open ? "Hide" : "View digest"}</button>
+                      <button className="link" onClick={() => setOpenRun(open ? null : r.id)}>{open ? t("Hide", "إخفاء") : t("View digest", "عرض الملخص")}</button>
                     </div>
                     {open && (
                       <ChainView
@@ -2178,6 +2205,11 @@ function Admin() {
 
 // ════════ STYLES ════════
 const CSS = `
+/* ——— RTL / Arabic mode ——— */
+html[dir="rtl"] body, html[dir="rtl"] input, html[dir="rtl"] textarea, html[dir="rtl"] select, html[dir="rtl"] button { font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif; }
+html[dir="rtl"] .eyebrow, html[dir="rtl"] .strip-n, html[dir="rtl"] .tag, html[dir="rtl"] .foot { letter-spacing: 0; }
+html[dir="rtl"] h1, html[dir="rtl"] h2, html[dir="rtl"] h3 { letter-spacing: 0; }
+
 .art-code { background:#131519; color:#B7BDC6; padding:14px 16px; border-radius:8px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; line-height:1.65; overflow-x:auto; white-space:pre; margin:16px 0; }
 
 :root {
