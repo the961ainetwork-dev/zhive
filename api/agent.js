@@ -77,7 +77,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: { message: "ANTHROPIC_API_KEY is not set in Vercel environment variables." } });
   }
   try {
-    const { tier = "standard", system, messages, stream = false } = req.body || {};
+    const { tier = "standard", system, messages, stream = false, webSearch = false, maxTokens } = req.body || {};
 
     const quota = await checkQuota(req);
     if (quota.blocked) return res.status(429).json({ error: { message: quota.blocked } });
@@ -92,15 +92,17 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: MODELS[t],
-        max_tokens: MAX_TOKENS[t],
+        max_tokens: Math.min(Number(maxTokens) || MAX_TOKENS[t], 3200),
         system,
         messages,
-        ...(stream ? { stream: true } : {}),
+        // Readiness Lab agents use live web search so regulatory claims cite current sources.
+        ...(webSearch ? { tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }] } : {}),
+        ...(stream && !webSearch ? { stream: true } : {}),
       }),
     });
 
     // Non-streaming path (and any upstream error) — return plain JSON as before.
-    if (!stream || !upstream.ok || !upstream.body) {
+    if (!stream || webSearch || !upstream.ok || !upstream.body) {
       const data = await upstream.json();
       return res.status(upstream.status).json(data);
     }
