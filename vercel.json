@@ -1,4 +1,13 @@
 {
+  "functions": {
+    "api/claude.js": { "maxDuration": 60 },
+    "api/update-news.js": { "maxDuration": 60 },
+    "api/send-newsletter.js": { "maxDuration": 60 }
+  },
+  "crons": [
+    { "path": "/api/update-news", "schedule": "0 6 * * *" },
+    { "path": "/api/send-newsletter", "schedule": "30 6 * * *" }
+  ],
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
