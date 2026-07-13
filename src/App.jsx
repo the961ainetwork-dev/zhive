@@ -765,6 +765,7 @@ function Home({ go }) {
         </div>
       </section>
 
+  <HappeningNow />
       {/* what zhive is: agents + the Readiness Lab */}
       <section className="section">
         <p className="eyebrow">{t("What zhive is", "ما هي zhive")}</p>
