@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { store, isCloud } from "./lib/store.js";
 import LoopLab from "./LoopLab.jsx";
-
+import HappeningNow from "./HappeningNow.jsx";
 // ——— i18n: Arabic-first experience ———
 // LANG is set from state on every render of the root app; t(en, ar) picks the string.
 // UI chrome is translated here; long-form content (essays, agent case studies) stays EN for now.
