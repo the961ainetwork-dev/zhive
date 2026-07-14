@@ -16,7 +16,16 @@ export default function HappeningNow({ onCTA }) {
   useEffect(() => {
     fetch('/api/get-news')
       .then(r => r.json())
-      .then(d => { if (d.stories?.length) setStories(d.stories); })
+      .then(d => {
+        if (d.stories?.length) {
+          setStories(d.stories);
+          const sid = new URLSearchParams(window.location.search).get('story');
+          if (sid) {
+            const match = d.stories.find(s => String(s.id) === sid);
+            if (match) { setAr(null); setOpen(match); }
+          }
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -36,7 +45,7 @@ export default function HappeningNow({ onCTA }) {
   };
 
   const waShare = (n) => {
-    const text = `\uD83D\uDD14 This is a Market Alert and News Update from zhive.xyz\nThe AI Workforce: Agents That Actually Do The Work\n\n${n.emoji} ${n.title}\n\n${n.body}${n.source ? '\n\nSource: ' + n.source : ''}\n\nRead the full brief: https://www.zhive.xyz\n\nJoin the zhive.xyz WhatsApp group:\nhttps://chat.whatsapp.com/KcE0dmp9drGGE5VmFv0tJZ\n\nJoin the AlKhawarizmi Community WhatsApp group:\nhttps://chat.whatsapp.com/KdqHl2Rj60pGUgvAV2TM20\n\nFollow us on LinkedIn:\nhttps://www.linkedin.com/groups/10064575/`;
+    const text = `\uD83D\uDD14 This is a Market Alert and News Update from zhive.xyz\nThe AI Workforce: Agents That Actually Do The Work\n\n${n.emoji} ${n.title}\n\n${n.body}${n.source ? '\n\nSource: ' + n.source : ''}\n\nRead the full story:\n${n.id ? 'https://www.zhive.xyz/?story=' + n.id : 'https://www.zhive.xyz'}\n\nJoin the zhive.xyz WhatsApp group:\nhttps://chat.whatsapp.com/KcE0dmp9drGGE5VmFv0tJZ\n\nJoin the AlKhawarizmi Community WhatsApp group:\nhttps://chat.whatsapp.com/KdqHl2Rj60pGUgvAV2TM20\n\nFollow us on LinkedIn:\nhttps://www.linkedin.com/groups/10064575/`;
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   };
 
