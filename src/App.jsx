@@ -587,7 +587,7 @@ export default function ZhiveApp() {
 
   // routing — state-driven, synced to real URLs (/admin, /directory, /agent/:id …)
   // so deep links, refreshes, and back/forward all work (vercel.json rewrites make Vercel serve the SPA).
-  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin"];
+  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin", "copilot"];
   const routeFromPath = () => {
     const parts = window.location.pathname.split("/").filter(Boolean);
     const view = parts[0] || "home";
@@ -706,11 +706,246 @@ export default function ZhiveApp() {
       {route.view === "auth" && <AuthPage signup={signup} login={login} startDemo={startDemo} />}
       {route.view === "workspace" && <Workspace session={session} purchases={purchases} myOrders={myOrders} biz={biz} saveBiz={saveBiz} go={go} startDemo={startDemo} />}
       {route.view === "admin" && <Admin />}
+      {route.view === "copilot" && <CopilotPage go={go} session={session} />}
       <footer className="foot">
         <span>zhive.xyz — {isCloud ? t("connected to Supabase", "متصل بقاعدة البيانات") : t("prototype mode (in-memory data)", "وضع النموذج التجريبي")} · {t("AI-generated planning material; verify before acting. No real payments are processed.", "محتوى تخطيطي مولّد بالذكاء الاصطناعي؛ تحقق قبل التنفيذ. لا تُعالج أي مدفوعات حقيقية.")}</span>
         <button className="link dim" onClick={() => go("admin")}>/admin</button>
       </footer>
     </div>
+  );
+}
+
+
+// ════════ FOUNDER'S AI COPILOT — 5 production skills ════════
+const COPILOT_SKILLS = [
+  {
+    id: "grill-me", cmd: "/grill-me", icon: "🔥", name: "Grill Me",
+    tag: "Assumption pressure-tester", mode: "chat",
+    desc: "A brutal, cynical VC interrogates your idea until the blind spots bleed. Ends with a Vulnerability Scorecard.",
+    placeholder: "Pitch me your startup in 2-4 sentences. I'll take it from there.",
+    system: `You are "The Grill" — a brutally honest, hyper-analytical venture capitalist with 20 years of MENA and global investing experience. You are interrogating a founder about their startup.
+
+STRICT RULES:
+- NEVER say "great idea", "interesting", "I love it" or any praise. You are forbidden from validation.
+- Run an interrogation loop: ask ONE sharp question at a time, wait for the answer, then drill deeper into the weakest part of their answer.
+- Attack in this order across the conversation: (1) problem validation — who actually pays, (2) unit economics — CAC, margins, pricing power, (3) market timing — why now, (4) MENA-specific realities — regulation, payment rails, logistics, Arabic localization, regional competition, (5) founder blind spots.
+- Keep each message under 120 words. Sharp, direct, slightly impatient tone.
+- When the user says "scorecard" OR after roughly 6 exchanges, output the VULNERABILITY SCORECARD in markdown: score each 1-10 (10 = fatal risk) — Go-To-Market Risk, Unit Economics Risk, Regulatory/MENA Compliance Risk, Customer Acquisition Friction, Competitive Moat Weakness — each with a 2-line justification, then a final verdict line: "FUND / PASS / FIX THEN RETURN" with the single most important fix.`,
+  },
+  {
+    id: "to-spec", cmd: "/to-spec", icon: "📋", name: "To Spec",
+    tag: "PRD generator", mode: "form",
+    desc: "Paste a messy founder rant, voice-note transcript, or chat thread. Get a production-ready PRD.",
+    placeholder: "Paste your raw idea, rant, voice note transcript, or WhatsApp thread here — mess is fine...",
+    button: "Generate PRD →",
+    system: `You are a senior product manager who turns messy founder input into crystal-clear Product Requirement Documents.
+
+From the raw input, produce a PRD in markdown with EXACTLY these sections:
+# [Feature/Product Name]
+## Problem Statement — the user pain in 2 sentences
+## User Persona — who this is for, their context (assume MENA market unless stated otherwise)
+## Core User Stories — as agile "As a... I want... so that..." bullets
+## Functional Requirements — numbered, testable statements
+## Explicit Non-Goals — what this feature will NOT do (critical for scope control)
+## Edge Cases & Boundary Rules — including Arabic/RTL, multi-currency, offline scenarios where relevant
+## Success Metrics — 3 measurable KPIs
+## Open Questions — anything the founder must decide before build
+
+Extract intent even from chaos. Never invent major features not implied by the input — put uncertain items in Open Questions.`,
+  },
+  {
+    id: "to-tickets", cmd: "/to-tickets", icon: "🎫", name: "To Tickets",
+    tag: "Tracer-bullet task breakdown", mode: "form",
+    desc: "Shatters a spec into sequenced, contractor-ready engineering tickets with dependencies and acceptance criteria.",
+    placeholder: "Paste your product spec or feature description here...",
+    button: "Break into tickets →",
+    system: `You are a veteran tech lead who breaks specs into tracer-bullet engineering tickets that a contractor or junior dev can execute WITHOUT asking questions.
+
+Output sequenced tickets in markdown. For EACH ticket use exactly this format:
+### TICKET-[n]: [imperative title]
+**Context:** why this exists, 1-2 lines
+**Depends on:** TICKET-x, TICKET-y (or "none — can start immediately")
+**Implementation steps:** numbered, concrete, tech-specific steps
+**Definition of Done:** checklist of acceptance criteria, each independently verifiable
+**Estimate:** S / M / L
+
+Rules: order tickets so each delivers a thin end-to-end slice (tracer bullet) rather than horizontal layers. First ticket must produce something demoable. Flag any ticket that blocks 3+ others with ⚠️ CRITICAL PATH.`,
+  },
+  {
+    id: "runway-model", cmd: "/runway-model", icon: "💰", name: "Runway Model",
+    tag: "Capital & burn strategist", mode: "runway",
+    desc: "Three runway scenarios computed exactly — never invented — with your fundraise kickoff date flagged.",
+    system: `You are a pragmatic startup CFO advising a MENA founder. You will receive PRE-COMPUTED runway figures (calculated deterministically — do not recalculate or alter any number).
+
+Your job: narrate strategy around the numbers in markdown:
+## Runway Reality Check — one blunt paragraph on their position
+## Scenario Analysis — for each scenario (Conservative / Target / Aggressive), 2-3 lines on what life looks like and its key risk
+## The Fundraise Clock — why the flagged kickoff date matters; MENA fundraise cycles run 6-9 months, longer than US norms
+## Three Moves This Month — specific burn-reduction or revenue actions ranked by impact
+Never output any financial figure that was not in the provided data. If hiring plans look unaffordable, say so directly.`,
+  },
+  {
+    id: "pitch-deck-genius", cmd: "/pitch-deck-genius", icon: "🎤", name: "Pitch Deck Genius",
+    tag: "Narrative architect", mode: "form",
+    desc: "Slide-by-slide review against Sequoia/YC frameworks. Rewrites your headlines to be punchy and metric-driven.",
+    placeholder: "Paste your deck slide by slide, e.g.:\nSlide 1: [title + what's on it]\nSlide 2: ...",
+    button: "Review my deck →",
+    system: `You are a pitch narrative architect who has reviewed 1,000+ decks against Sequoia and Y-Combinator storytelling frameworks, with deep knowledge of what MENA and Gulf VCs specifically probe (regional TAM credibility, regulatory pathway, exit landscape).
+
+For the pasted deck, output in markdown:
+## Narrative Arc Score: X/10 — is problem→solution→why-now a gripping story? Where does it break?
+## Slide-by-Slide Review — for each slide: **Cognitive Load** (CLEAN / BUSY / OVERLOADED), what to cut, and a REWRITTEN HEADLINE that is punchy and metric-driven (headline states the takeaway, not the topic — "Retention: 84% of users return weekly" not "Our Metrics")
+## The Missing Slide — the one slide this deck needs and doesn't have
+## MENA Investor Lens — 2-3 things a Gulf VC will challenge that a US template ignores
+## The 30-Second Version — if the founder only got an elevator, the exact words to say`,
+  },
+];
+
+function CopilotPage({ go, session }) {
+  const [active, setActive] = useState(null);
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [chat, setChat] = useState([]); // {role, content}
+  // runway inputs
+  const [cash, setCash] = useState(""); const [burn, setBurn] = useState("");
+  const [hires, setHires] = useState(""); const [hireCost, setHireCost] = useState("");
+
+  const pick = (s) => { setActive(s); setInput(""); setOutput(""); setChat([]); setBusy(false); };
+
+  const runForm = async () => {
+    if (!input.trim() || busy) return;
+    setBusy(true); setOutput("");
+    try {
+      const text = await callClaude(active.system, [{ role: "user", content: input }], "deep");
+      setOutput(text);
+    } catch (e) { setOutput("⚠️ " + (e.message || "Something went wrong — try again.")); }
+    setBusy(false);
+  };
+
+  const sendChat = async () => {
+    if (!input.trim() || busy) return;
+    const next = [...chat, { role: "user", content: input }];
+    setChat(next); setInput(""); setBusy(true);
+    try {
+      const text = await callClaude(active.system, next, "standard");
+      setChat([...next, { role: "assistant", content: text }]);
+    } catch (e) { setChat([...next, { role: "assistant", content: "⚠️ " + (e.message || "Error — try again.") }]); }
+    setBusy(false);
+  };
+
+  const runRunway = async () => {
+    const c = parseFloat(cash), b = parseFloat(burn);
+    const h = parseInt(hires) || 0, hc = parseFloat(hireCost) || 0;
+    if (!c || !b || busy) { setOutput("Enter your cash and monthly burn first."); return; }
+    setBusy(true); setOutput("");
+    // Deterministic math — computed here, never by the model
+    const m = (months) => { const d = new Date(); d.setMonth(d.getMonth() + Math.floor(months)); return d.toLocaleDateString("en-GB", { month: "short", year: "numeric" }); };
+    const r1 = c / b;                                   // Conservative: hiring freeze
+    const r2 = c / (b + (h * hc) / 2);                  // Target: staged hires (avg half-loaded)
+    const r3 = c / (b + h * hc);                        // Aggressive: all hires now
+    const fund = Math.max(0, r2 - 6);                   // kickoff = target runway end minus 6 months
+    const dataBlock = `PRE-COMPUTED RUNWAY DATA (authoritative — do not alter):
+- Cash on hand: $${c.toLocaleString()}
+- Current monthly burn: $${b.toLocaleString()}
+- Planned hires: ${h} at $${hc.toLocaleString()}/month each
+- CONSERVATIVE (immediate hiring freeze): ${r1.toFixed(1)} months runway → cash-out ${m(r1)}
+- TARGET (milestone-based staged hiring): ${r2.toFixed(1)} months runway → cash-out ${m(r2)}
+- AGGRESSIVE (all hires immediately): ${r3.toFixed(1)} months runway → cash-out ${m(r3)}
+- ⚑ FUNDRAISE KICKOFF DATE: ${m(fund)} (6 months before target cash-out; MENA raises take 6-9 months)`;
+    try {
+      const text = await callClaude(active.system, [{ role: "user", content: dataBlock }], "deep");
+      setOutput(dataBlock.replace("PRE-COMPUTED RUNWAY DATA (authoritative — do not alter):", "### 📊 Computed scenarios") + "\n\n---\n\n" + text);
+    } catch (e) { setOutput(dataBlock + "\n\n⚠️ Strategy narration failed: " + (e.message || "try again")); }
+    setBusy(false);
+  };
+
+  return (
+    <main className="wrap">
+      <p className="eyebrow">{t("Founder's AI Copilot", "مساعد المؤسس الذكي")}</p>
+      <h1>{t("Five skills. Zero mercy. Real deliverables.", "خمس مهارات. بلا مجاملة. نتائج حقيقية.")}</h1>
+      <p className="lede">{t("Production-grade Claude Skills for founders — pressure-test assumptions, spec products, cut tickets, model runway, and fix your pitch.", "مهارات إنتاجية للمؤسسين — اختبر افتراضاتك، حوّل أفكارك لمواصفات، قسّم المهام، احسب مدرجك المالي، وأصلح عرضك.")}</p>
+
+      {!session && (
+        <div className="kn-card" style={{ marginTop: 24 }}>
+          <h3>{t("Sign in to use the Copilot", "سجّل الدخول لاستخدام المساعد")}</h3>
+          <p className="dim-t">{t("The 24h free demo includes full Copilot access.", "التجربة المجانية لـ 24 ساعة تشمل الوصول الكامل.")}</p>
+          <button className="btn" onClick={() => go("auth")}>{t("Start free — 24h demo", "ابدأ مجانًا")}</button>
+        </div>
+      )}
+
+      <div className="kn-list" style={{ marginTop: 28 }}>
+        {COPILOT_SKILLS.map((s) => (
+          <div key={s.id} className="kn-card" onClick={() => session && pick(s)} role="button" tabIndex={0}
+            style={{ cursor: session ? "pointer" : "not-allowed", opacity: session ? 1 : 0.55, outline: active?.id === s.id ? "2px solid #0a0a0a" : "none" }}>
+            <p className="eyebrow" style={{ marginBottom: 6 }}>{s.cmd}</p>
+            <h3>{s.icon} {s.name}</h3>
+            <p className="dim-t">{s.desc}</p>
+            <span className="link">{s.tag} →</span>
+          </div>
+        ))}
+      </div>
+
+      {active && session && (
+        <div style={{ marginTop: 36, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 16, padding: 28 }}>
+          <p className="eyebrow">{active.cmd} · {active.tag}</p>
+          <h2 style={{ marginTop: 4 }}>{active.icon} {active.name}</h2>
+
+          {active.mode === "chat" && (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, margin: "18px 0", maxHeight: 420, overflowY: "auto" }}>
+                {chat.length === 0 && <p className="dim-t">{active.placeholder}</p>}
+                {chat.map((msg, i) => (
+                  <div key={i} style={{ alignSelf: msg.role === "user" ? "flex-end" : "flex-start", maxWidth: "85%", background: msg.role === "user" ? "#0a0a0a" : "#f5f5f5", color: msg.role === "user" ? "#fff" : "#0a0a0a", borderRadius: 12, padding: "10px 14px", fontSize: 14, lineHeight: 1.6 }}>
+                    {msg.role === "assistant" ? <Markdown text={msg.content} /> : msg.content}
+                  </div>
+                ))}
+                {busy && <p className="dim-t">🔥 thinking…</p>}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendChat()}
+                  placeholder={chat.length ? "Answer — or type 'scorecard' to end the grilling" : active.placeholder}
+                  style={{ flex: 1, padding: "12px 14px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none" }} />
+                <button className="btn" onClick={sendChat} disabled={busy}>{busy ? "…" : "Send"}</button>
+              </div>
+            </>
+          )}
+
+          {active.mode === "form" && (
+            <>
+              <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder={active.placeholder}
+                rows={7} style={{ width: "100%", marginTop: 14, padding: 14, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", resize: "vertical" }} />
+              <button className="btn" style={{ marginTop: 10 }} onClick={runForm} disabled={busy}>{busy ? "Working…" : active.button}</button>
+            </>
+          )}
+
+          {active.mode === "runway" && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
+                {[["Cash on hand (USD)", cash, setCash, "e.g. 180000"], ["Monthly burn (USD)", burn, setBurn, "e.g. 22000"], ["Planned new hires (count)", hires, setHires, "e.g. 2"], ["Avg cost per hire / month (USD)", hireCost, setHireCost, "e.g. 3500"]].map(([label, val, set, ph], i) => (
+                  <div key={i}>
+                    <p className="eyebrow" style={{ marginBottom: 4 }}>{label}</p>
+                    <input value={val} onChange={(e) => set(e.target.value)} placeholder={ph} inputMode="decimal"
+                      style={{ width: "100%", padding: "11px 13px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none" }} />
+                  </div>
+                ))}
+              </div>
+              <button className="btn" style={{ marginTop: 14 }} onClick={runRunway} disabled={busy}>{busy ? "Modeling…" : "Model my runway →"}</button>
+            </>
+          )}
+
+          {output && (
+            <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+              <Markdown text={output} />
+              <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
+                <button className="btn small ghost" onClick={() => { navigator.clipboard?.writeText(output); }}>📋 Copy</button>
+                <button className="btn small ghost" onClick={() => { const w = window.open("", "_blank"); w.document.write(`<html><head><title>${active.name} — ZHIVE Copilot</title><style>body{font-family:Arial;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7;color:#0a0a0a}pre{white-space:pre-wrap}</style></head><body><h3>ZHIVE · ${active.cmd}</h3><pre>${output.replace(/</g, "&lt;")}</pre></body></html>`); w.document.close(); setTimeout(() => w.print(), 300); }}>📄 PDF</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </main>
   );
 }
 
@@ -727,6 +962,7 @@ function Header({ go, session, cart, logout, lang, setLang }) {
         <button className="link" onClick={() => go("method")}>{t("Method", "المنهجية")}</button>
         <button className="link" onClick={() => go("pipelines")}>{t("Pipelines", "خطوط الوكلاء")}</button>
         <button className="link" onClick={() => go("lab")}>{t("Readiness Lab", "مختبر الجاهزية")}</button>
+        <button className="link" onClick={() => go("copilot")}>{t("Copilot", "مساعد المؤسس")}</button>
         <button className="link" onClick={() => go("about")}>{t("About", "من نحن")}</button>
         <button className="link" onClick={() => go("knowledge")}>{t("Knowledge", "المعرفة")}</button>
         <button className="link" onClick={() => go("cart")}>{t("Cart", "السلة")}{cart.length > 0 ? ` (${cart.length})` : ""}</button>
