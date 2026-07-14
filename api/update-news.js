@@ -1,4 +1,4 @@
-// Runs daily via Vercel Cron — generates 5 fresh AI news stories WITH full articles
+// Daily cron — generates 10 fresh AI news stories with full articles + sources
 const SUPABASE_URL = 'https://ldlzpnuvkudmvpvnbomc.supabase.co';
 
 export default async function handler(req, res) {
@@ -17,17 +17,18 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
-        max_tokens: 7000,
+        max_tokens: 8000,
         tools: [{ type: 'web_search_20250305', name: 'web_search' }],
         messages: [{
           role: 'user',
-          content: `Search the web for the most important AI and agentic AI news from the last 24 hours. Then write exactly 5 news stories as a JSON array. Each story must have these fields:
-- "tag": short category like "Model release", "Agentic AI", "Industry", "Funding", "Research"
+          content: `Search the web for the most important AI and agentic AI news from the last 24 hours. Do multiple searches to cover: model releases, agentic AI, funding, research, MENA tech. Then write exactly 10 news stories as a JSON array. Each story must have:
+- "tag": short category like "Model release", "Agentic AI", "Industry", "Funding", "Research", "MENA"
 - "date": today's date formatted like "Jul 13, 2026"
 - "emoji": one relevant emoji
 - "title": punchy headline, max 12 words, energetic tone for young entrepreneurs
 - "body": 2-3 sentence teaser in plain language
-- "article": the FULL story, 4-6 paragraphs separated by \\n\\n. Written for MENA entrepreneurs: what happened, why it matters for their business, and one practical takeaway at the end. Plain language, no jargon.
+- "article": the FULL story, 3-5 paragraphs separated by \\n\\n. Written for MENA entrepreneurs: what happened, why it matters for their business, one practical takeaway at the end. Plain language.
+- "source": the publication or company the news came from, e.g. "TechCrunch", "Anthropic blog", "Reuters"
 - "read": estimated read time like "3 min read"
 
 Respond ONLY with the JSON array. No markdown, no backticks, no preamble.`
@@ -73,7 +74,8 @@ Respond ONLY with the JSON array. No markdown, no backticks, no preamble.`
       },
       body: JSON.stringify(stories.map(s => ({
         tag: s.tag, date: s.date, emoji: s.emoji,
-        title: s.title, body: s.body, article: s.article || '', read: s.read,
+        title: s.title, body: s.body, article: s.article || '',
+        source: s.source || '', read: s.read,
       }))),
     });
 
