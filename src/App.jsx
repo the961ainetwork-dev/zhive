@@ -998,16 +998,33 @@ function KnowledgePage({ go }) {
   const rest = ARTICLES.filter((a) => a.id !== "death-of-saas");
   const [daily, setDaily] = useState([]);
   const [openStory, setOpenStory] = useState(null);
+  const [arStory, setArStory] = useState(null);
+  const [translating, setTranslating] = useState(false);
   useEffect(() => {
     fetch("/api/get-news").then((r) => r.json()).then((d) => { if (d.stories?.length) setDaily(d.stories); }).catch(() => {});
   }, []);
+  const translateStory = async (n) => {
+    if (arStory) { setArStory(null); return; }
+    setTranslating(true);
+    try {
+      const r = await fetch("/api/claude", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: `Translate this AI news story into Modern Standard Arabic for business readers. Respond ONLY with JSON: {"title":"...","article":"..."} keeping paragraphs separated by \n\n. No markdown.\n\nTITLE: ${n.title}\n\nARTICLE:\n${n.article || n.body}`, maxTokens: 2000 }),
+      });
+      const d = await r.json();
+      const clean = (d.text || "").replace(/```json|```/g, "").trim();
+      const j = JSON.parse(clean.slice(clean.indexOf("{"), clean.lastIndexOf("}") + 1));
+      setArStory(j);
+    } catch (e) { setArStory(null); }
+    setTranslating(false);
+  };
   const waShareStory = (n) => {
-    const text = `${n.emoji} ${n.title}\n\n${n.body}\n\nRead the full AI daily brief on ZHIVE:\nhttps://www.zhive.xyz`;
+    const text = `\uD83D\uDD14 This is a Market Alert and News Update from zhive.xyz\nThe AI Workforce: Agents That Actually Do The Work\n\n${n.emoji} ${n.title}\n\n${n.body}${n.source ? '\n\nSource: ' + n.source : ''}\n\nRead the full brief: https://www.zhive.xyz\n\nJoin the zhive.xyz WhatsApp group:\nhttps://chat.whatsapp.com/KcE0dmp9drGGE5VmFv0tJZ\n\nJoin the AlKhawarizmi Community WhatsApp group:\nhttps://chat.whatsapp.com/KdqHl2Rj60pGUgvAV2TM20\n\nFollow us on LinkedIn:\nhttps://www.linkedin.com/groups/10064575/`;
     window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
   };
   const pdfStory = (n) => {
     const w = window.open("", "_blank");
-    w.document.write(`<!DOCTYPE html><html><head><title>${n.title}</title><style>body{font-family:Arial,sans-serif;max-width:640px;margin:40px auto;padding:0 24px;color:#0a0a0a;line-height:1.7}.brand{font-size:20px;font-weight:900;letter-spacing:2px;margin-bottom:4px}.meta{font-size:12px;color:#888;margin-bottom:24px}h1{font-size:26px;line-height:1.25;margin:8px 0 16px}p{font-size:14px;margin-bottom:14px}.foot{margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa}</style></head><body><div class="brand">ZHIVE</div><div class="meta">${n.tag} · ${n.date} · ${n.read}</div><h1>${n.emoji} ${n.title}</h1>${(n.article || n.body).split("\n\n").map((p) => "<p>" + p + "</p>").join("")}<div class="foot">© 2026 ZHIVE · zhive.xyz · AI daily brief for MENA entrepreneurs</div></body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><title>${n.title}</title><style>body{font-family:Arial,sans-serif;max-width:640px;margin:40px auto;padding:0 24px;color:#0a0a0a;line-height:1.7}.brand{font-size:20px;font-weight:900;letter-spacing:2px;margin-bottom:4px}.meta{font-size:12px;color:#888;margin-bottom:24px}h1{font-size:26px;line-height:1.25;margin:8px 0 16px}p{font-size:14px;margin-bottom:14px}.foot{margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa}</style></head><body><div class="brand">ZHIVE</div><div class="meta">${n.tag} · ${n.date} · ${n.read}${n.source ? " · Source: " + n.source : ""}</div><h1>${n.emoji} ${n.title}</h1>${(n.article || n.body).split("\n\n").map((p) => "<p>" + p + "</p>").join("")}<div class="foot">© 2026 ZHIVE · zhive.xyz · AI daily brief for MENA entrepreneurs</div></body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);
   };
@@ -1026,9 +1043,9 @@ function KnowledgePage({ go }) {
           </p>
           <div className="kn-list">
             {daily.map((n, i) => (
-              <div key={i} className="kn-card" onClick={() => setOpenStory(n)} role="button" tabIndex={0}
-                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setOpenStory(n)}>
-                <p className="eyebrow" style={{ marginBottom: 6 }}>{n.tag} · {n.date}</p>
+              <div key={i} className="kn-card" onClick={() => { setArStory(null); setOpenStory(n); }} role="button" tabIndex={0}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (setArStory(null), setOpenStory(n))}>
+                <p className="eyebrow" style={{ marginBottom: 6 }}>{n.tag} · {n.date}{n.source ? " · " + n.source : ""}</p>
                 <h3>{n.emoji} {n.title}</h3>
                 <p className="dim-t">{n.body}</p>
                 <span className="link">Read → · {n.read}</span>
@@ -1043,15 +1060,16 @@ function KnowledgePage({ go }) {
           onClick={(e) => { if (e.target === e.currentTarget) setOpenStory(null); }}>
           <div style={{ background: "#fff", borderRadius: 18, maxWidth: 620, width: "100%", maxHeight: "86vh", overflowY: "auto", padding: "36px 36px 28px", position: "relative" }}>
             <button onClick={() => setOpenStory(null)} style={{ position: "absolute", top: 14, right: 16, background: "none", border: "none", fontSize: 20, color: "#aaa", cursor: "pointer" }}>✕</button>
-            <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>{openStory.tag} · {openStory.date} · {openStory.read}</div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.25, marginBottom: 18, color: "#0a0a0a" }}>{openStory.emoji} {openStory.title}</h2>
-            {(openStory.article || openStory.body).split("\n\n").map((p, i) => (
-              <p key={i} style={{ fontSize: 14, color: "#444", lineHeight: 1.8, marginBottom: 14 }}>{p}</p>
+            <div style={{ fontSize: 12, color: "#888", marginBottom: 10 }}>{openStory.tag} · {openStory.date} · {openStory.read}{openStory.source ? " · Source: " + openStory.source : ""}</div>
+            <h2 style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.25, marginBottom: 18, color: "#0a0a0a" }} dir={arStory ? "rtl" : "ltr"}>{openStory.emoji} {arStory ? arStory.title : openStory.title}</h2>
+            {((arStory ? arStory.article : (openStory.article || openStory.body)) || "").split("\n\n").map((p, i) => (
+              <p key={i} dir={arStory ? "rtl" : "ltr"} style={{ fontSize: 14, color: "#444", lineHeight: 1.8, marginBottom: 14, textAlign: arStory ? "right" : "left" }}>{p}</p>
             ))}
             <div style={{ display: "flex", gap: 8, marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(0,0,0,0.08)", flexWrap: "wrap" }}>
               <button onClick={() => { setOpenStory(null); go("auth"); }} style={{ flex: 1, minWidth: 160, background: "#0a0a0a", color: "#fff", border: "none", fontSize: 13, fontWeight: 600, padding: "12px 18px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>🚀 Start free — 24h demo</button>
               <button onClick={() => waShareStory(openStory)} style={{ background: "#fff", color: "#0a0a0a", border: "1px solid rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 500, padding: "12px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>Share on WhatsApp</button>
-              <button onClick={() => pdfStory(openStory)} style={{ background: "#fff", color: "#0a0a0a", border: "1px solid rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 500, padding: "12px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>📄 Save as PDF</button>
+              <button onClick={() => pdfStory(arStory ? { ...openStory, title: arStory.title, article: arStory.article } : openStory)} style={{ background: "#fff", color: "#0a0a0a", border: "1px solid rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 500, padding: "12px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit" }}>📄 Save as PDF</button>
+              <button onClick={() => translateStory(openStory)} disabled={translating} style={{ background: "#fff", color: "#0a0a0a", border: "1px solid rgba(0,0,0,0.15)", fontSize: 13, fontWeight: 500, padding: "12px 16px", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", opacity: translating ? 0.5 : 1 }}>{translating ? "..." : arStory ? "🌐 English" : "🌐 عربي"}</button>
             </div>
           </div>
         </div>
