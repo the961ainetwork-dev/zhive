@@ -9,6 +9,8 @@ export default function HappeningNow({ onCTA }) {
   const [email, setEmail] = useState('');
   const [subMsg, setSubMsg] = useState('');
   const [open, setOpen] = useState(null); // story object or null
+  const [ar, setAr] = useState(null);
+  const [translating, setTranslating] = useState(false);
   const trackRef = useRef(null);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function HappeningNow({ onCTA }) {
   };
 
   const waShare = (n) => {
-    const text = `${n.emoji} ${n.title}\n\n${n.body}\n\nRead the full AI daily brief on ZHIVE:\nhttps://www.zhive.xyz`;
+    const text = `\uD83D\uDD14 This is a Market Alert and News Update from zhive.xyz\nThe AI Workforce: Agents That Actually Do The Work\n\n${n.emoji} ${n.title}\n\n${n.body}${n.source ? '\n\nSource: ' + n.source : ''}\n\nRead the full brief: https://www.zhive.xyz\n\nJoin the zhive.xyz WhatsApp group:\nhttps://chat.whatsapp.com/KcE0dmp9drGGE5VmFv0tJZ\n\nJoin the AlKhawarizmi Community WhatsApp group:\nhttps://chat.whatsapp.com/KdqHl2Rj60pGUgvAV2TM20\n\nFollow us on LinkedIn:\nhttps://www.linkedin.com/groups/10064575/`;
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
   };
 
@@ -50,13 +52,29 @@ export default function HappeningNow({ onCTA }) {
         .foot{margin-top:32px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa}
       </style></head><body>
       <div class="brand">ZHIVE</div>
-      <div class="meta">${n.tag} · ${n.date} · ${n.read}</div>
+      <div class="meta">${n.tag} · ${n.date} · ${n.read}${n.source ? " · Source: " + n.source : ""}</div>
       <h1>${n.emoji} ${n.title}</h1>
       ${(n.article || n.body).split('\n\n').map(p => '<p>' + p + '</p>').join('')}
       <div class="foot">© 2026 ZHIVE · zhive.xyz · AI daily brief for MENA entrepreneurs</div>
       </body></html>`);
     w.document.close();
     setTimeout(() => w.print(), 400);
+  };
+
+  const translate = async (n) => {
+    if (ar) { setAr(null); return; }
+    setTranslating(true);
+    try {
+      const r = await fetch('/api/claude', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: `Translate this AI news story into Modern Standard Arabic for business readers. Respond ONLY with JSON: {"title":"...","article":"..."} keeping paragraphs separated by \n\n. No markdown.\n\nTITLE: ${n.title}\n\nARTICLE:\n${n.article || n.body}`, maxTokens: 2000 }),
+      });
+      const d = await r.json();
+      const clean = (d.text || '').replace(/```json|```/g, '').trim();
+      const j = JSON.parse(clean.slice(clean.indexOf('{'), clean.lastIndexOf('}') + 1));
+      setAr(j);
+    } catch (e) { setAr(null); }
+    setTranslating(false);
   };
 
   const cta = () => {
@@ -122,13 +140,13 @@ export default function HappeningNow({ onCTA }) {
             <div style={s.cardBody}>
               <div style={s.meta}>
                 <span style={s.tag}>{n.tag}</span>
-                <span style={s.date}>{n.date}</span>
+                <span style={s.date}>{n.date}{n.source ? ' · ' + n.source : ''}</span>
               </div>
               <div style={s.emoji}>{n.emoji}</div>
               <div style={s.title}>{n.title}</div>
               <div style={s.body}>{n.body}</div>
               <div style={s.foot}>
-                <button style={s.readBtn} onClick={() => setOpen(n)}>Read more →</button>
+                <button style={s.readBtn} onClick={() => { setAr(null); setOpen(n); }}>Read more →</button>
                 <button style={s.iconBtn} title="Share on WhatsApp" onClick={() => waShare(n)}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M17.5 14.4c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.68-1.62-.93-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.5 0 1.47 1.07 2.9 1.22 3.1.15.2 2.1 3.2 5.1 4.49.71.31 1.27.49 1.7.63.72.23 1.37.2 1.88.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35zM12.05 21.79h-.01a9.87 9.87 0 01-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 01-1.51-5.26c0-5.45 4.44-9.88 9.9-9.88a9.83 9.83 0 016.99 2.9 9.82 9.82 0 012.9 7c0 5.45-4.45 9.87-9.9 9.87zm8.42-18.29A11.8 11.8 0 0012.04 0C5.46 0 .1 5.35.1 11.92c0 2.1.55 4.15 1.6 5.96L0 24l6.27-1.64a11.94 11.94 0 005.77 1.47h.01c6.58 0 11.94-5.35 11.94-11.92 0-3.18-1.24-6.18-3.52-8.41z"/></svg>
                 </button>
@@ -153,15 +171,16 @@ export default function HappeningNow({ onCTA }) {
         <div style={s.overlay} onClick={e => { if (e.target === e.currentTarget) setOpen(null); }}>
           <div style={s.modal}>
             <button style={s.close} onClick={() => setOpen(null)}>✕</button>
-            <div style={s.mMeta}>{open.tag} · {open.date} · {open.read}</div>
-            <h2 style={s.mTitle}>{open.emoji} {open.title}</h2>
-            {(open.article || open.body).split('\n\n').map((p, i) => (
-              <p key={i} style={s.mPara}>{p}</p>
+            <div style={s.mMeta}>{open.tag} · {open.date} · {open.read}{open.source ? ' · Source: ' + open.source : ''}</div>
+            <h2 style={{...s.mTitle, direction: ar ? 'rtl' : 'ltr'}}>{open.emoji} {ar ? ar.title : open.title}</h2>
+            {((ar ? ar.article : (open.article || open.body)) || '').split('\n\n').map((p, i) => (
+              <p key={i} dir={ar ? 'rtl' : 'ltr'} style={{...s.mPara, textAlign: ar ? 'right' : 'left'}}>{p}</p>
             ))}
             <div style={s.mActions}>
               <button style={s.mCta} onClick={cta}>🚀 Start free — 24h demo</button>
               <button style={s.mSec} onClick={() => waShare(open)}>Share on WhatsApp</button>
-              <button style={s.mSec} onClick={() => pdfExport(open)}>📄 Save as PDF</button>
+              <button style={s.mSec} onClick={() => pdfExport(ar ? { ...open, title: ar.title, article: ar.article } : open)}>📄 Save as PDF</button>
+              <button style={{...s.mSec, opacity: translating ? 0.5 : 1}} disabled={translating} onClick={() => translate(open)}>{translating ? '...' : ar ? '🌐 English' : '🌐 عربي'}</button>
             </div>
           </div>
         </div>
