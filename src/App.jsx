@@ -609,7 +609,15 @@ export default function ZhiveApp() {
   }, []);
 
   // session + user data (Supabase when configured, in-memory otherwise)
-  const [session, setSession] = useState(null); // {id, email, name, demo, expires?}
+  const [session, setSession] = useState(() => {
+    // Restore a still-valid 24h demo session across page loads
+    try {
+      const d = JSON.parse(localStorage.getItem("zhive-demo") || "null");
+      if (d?.demo && d.expires > Date.now()) return d;
+      localStorage.removeItem("zhive-demo");
+    } catch { /* ignore */ }
+    return null;
+  }); // {id, email, name, demo, expires?}
   const [purchases, setPurchases] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
   const [biz, setBiz] = useState(null); // shared business profile
@@ -623,7 +631,7 @@ export default function ZhiveApp() {
 
   // demo expiry check
   useEffect(() => {
-    if (session?.demo && session.expires < Date.now()) setSession(null);
+    if (session?.demo && session.expires < Date.now()) { try { localStorage.removeItem("zhive-demo"); } catch { /* ignore */ } setSession(null); }
   });
 
   // load purchases + orders whenever the signed-in user changes
@@ -655,12 +663,14 @@ export default function ZhiveApp() {
     go("workspace");
     return null;
   }
-  function startDemo() {
+  function startDemo(dest) {
     store.logEvent("demo_start", null);
-    setSession({ id: "demo", email: "demo@zhive.xyz", name: "Demo user", demo: true, expires: Date.now() + DEMO_MS });
-    go("workspace");
+    const s = { id: "demo", email: "demo@zhive.xyz", name: "Demo user", demo: true, expires: Date.now() + DEMO_MS };
+    try { localStorage.setItem("zhive-demo", JSON.stringify(s)); } catch { /* ignore */ }
+    setSession(s);
+    go(typeof dest === "string" ? dest : "workspace");
   }
-  async function logout() { await store.signOut(); setSession(null); go("home"); }
+  async function logout() { await store.signOut(); try { localStorage.removeItem("zhive-demo"); } catch { /* ignore */ } setSession(null); go("home"); }
 
   // ——— cart / checkout ———
   const inCart = (id) => cart.includes(id);
@@ -706,7 +716,7 @@ export default function ZhiveApp() {
       {route.view === "auth" && <AuthPage signup={signup} login={login} startDemo={startDemo} />}
       {route.view === "workspace" && <Workspace session={session} purchases={purchases} myOrders={myOrders} biz={biz} saveBiz={saveBiz} go={go} startDemo={startDemo} />}
       {route.view === "admin" && <Admin />}
-      {route.view === "copilot" && <CopilotPage go={go} session={session} />}
+      {route.view === "copilot" && <CopilotPage go={go} session={session} startDemo={startDemo} />}
       <footer className="foot">
         <span>zhive.xyz — {isCloud ? t("connected to Supabase", "متصل بقاعدة البيانات") : t("prototype mode (in-memory data)", "وضع النموذج التجريبي")} · {t("AI-generated planning material; verify before acting. No real payments are processed.", "محتوى تخطيطي مولّد بالذكاء الاصطناعي؛ تحقق قبل التنفيذ. لا تُعالج أي مدفوعات حقيقية.")}</span>
         <button className="link dim" onClick={() => go("admin")}>/admin</button>
@@ -801,7 +811,7 @@ For the pasted deck, output in markdown:
   },
 ];
 
-function CopilotPage({ go, session }) {
+function CopilotPage({ go, session, startDemo }) {
   const [active, setActive] = useState(null);
   const [input, setInput] = useState("");
   const [output, setOutput] = useState("");
@@ -870,14 +880,17 @@ function CopilotPage({ go, session }) {
         <div className="kn-card" style={{ marginTop: 24 }}>
           <h3>{t("Sign in to use the Copilot", "سجّل الدخول لاستخدام المساعد")}</h3>
           <p className="dim-t">{t("The 24h free demo includes full Copilot access.", "التجربة المجانية لـ 24 ساعة تشمل الوصول الكامل.")}</p>
-          <button className="btn" onClick={() => go("auth")}>{t("Start free — 24h demo", "ابدأ مجانًا")}</button>
+          <div className="row" style={{ display: "flex", gap: 8 }}>
+            <button className="btn" onClick={() => startDemo && startDemo("copilot")}>{t("Start 24h demo — instant", "ابدأ التجربة فورًا")}</button>
+            <button className="btn ghost" onClick={() => go("auth")}>{t("Sign in", "تسجيل الدخول")}</button>
+          </div>
         </div>
       )}
 
       <div className="kn-list" style={{ marginTop: 28 }}>
         {COPILOT_SKILLS.map((s) => (
-          <div key={s.id} className="kn-card" onClick={() => session && pick(s)} role="button" tabIndex={0}
-            style={{ cursor: session ? "pointer" : "not-allowed", opacity: session ? 1 : 0.55, outline: active?.id === s.id ? "2px solid #0a0a0a" : "none" }}>
+          <div key={s.id} className="kn-card" onClick={() => (session ? pick(s) : startDemo ? startDemo("copilot") : go("auth"))} role="button" tabIndex={0}
+            style={{ cursor: "pointer", opacity: session ? 1 : 0.7, outline: active?.id === s.id ? "2px solid #0a0a0a" : "none" }}>
             <p className="eyebrow" style={{ marginBottom: 6 }}>{s.cmd}</p>
             <h3>{s.icon} {s.name}</h3>
             <p className="dim-t">{s.desc}</p>
