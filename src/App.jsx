@@ -197,7 +197,12 @@ function learnIntoBrain(session, agentName, task, output) {
   fetch("/api/brain", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ userId: uid, action: "learn", agentName, task, output }),
-  }).then((r) => r.json()).then((d) => { if (d.learned) refreshBrainContext(session); }).catch(() => { /* silent */ });
+  }).then((r) => r.json()).then((d) => {
+    if (d.learned) {
+      refreshBrainContext(session);
+      try { window.dispatchEvent(new CustomEvent("zhive-brain", { detail: { titles: d.titles || [] } })); } catch { /* ignore */ }
+    }
+  }).catch(() => { /* silent */ });
 }
 
 const withBrain = (system) =>
@@ -674,6 +679,19 @@ export default function ZhiveApp() {
   // Business Brain: load compiled context whenever the user changes
   useEffect(() => { refreshBrainContext(session); }, [session]);
 
+  // Phase 3: "what I learned" toast when an approval teaches the Brain
+  const [brainToast, setBrainToast] = useState(null);
+  useEffect(() => {
+    const h = (e) => {
+      const titles = e.detail?.titles || [];
+      if (!titles.length) return;
+      setBrainToast(titles[0]);
+      setTimeout(() => setBrainToast(null), 4500);
+    };
+    window.addEventListener("zhive-brain", h);
+    return () => window.removeEventListener("zhive-brain", h);
+  }, []);
+
   // load purchases + orders whenever the signed-in user changes
   useEffect(() => {
     let on = true;
@@ -743,6 +761,11 @@ export default function ZhiveApp() {
     <div className="app">
       <style>{CSS}</style>
       <Header route={route} go={go} session={session} cart={cart} logout={logout} lang={lang} setLang={setLang} />
+      {brainToast && (
+        <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", zIndex: 3000, background: "#0a0a0a", color: "#fff", borderRadius: 99, padding: "10px 22px", fontSize: 13, boxShadow: "0 8px 30px rgba(0,0,0,0.25)", maxWidth: "90vw", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          🧠 {t("Brain learned:", "تعلّم الدماغ:")} {brainToast}
+        </div>
+      )}
       {route.view === "home" && <Home go={go} />}
       {route.view === "about" && <AboutPage go={go} />}
       {route.view === "knowledge" && <KnowledgePage go={go} />}
@@ -788,6 +811,7 @@ function BrainPage({ go, session, startDemo }) {
   const [extracting, setExtracting] = useState(false);
   const [msg, setMsg] = useState("");
   const [editing, setEditing] = useState(null); // item being edited
+  const [cap, setCap] = useState(60);
   const [nTitle, setNTitle] = useState(""); const [nContent, setNContent] = useState(""); const [nKind, setNKind] = useState("notes");
   const uid = brainUserId(session);
 
@@ -798,6 +822,7 @@ function BrainPage({ go, session, startDemo }) {
       const r = await fetch(`/api/brain?userId=${encodeURIComponent(uid)}`);
       const d = await r.json();
       setItems(d.items || []);
+      if (d.cap) setCap(d.cap);
     } catch { /* ignore */ }
     setLoading(false);
   };
@@ -861,10 +886,18 @@ function BrainPage({ go, session, startDemo }) {
         <>
           {/* Stats bar */}
           <div className="row" style={{ display: "flex", gap: 20, marginTop: 24, flexWrap: "wrap" }}>
-            <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length}</div><p className="dim-t">{t("knowledge items", "عناصر معرفية")}</p></div>
+            <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length}<span style={{ fontSize: 15, color: "#999", fontWeight: 600 }}>/{cap}</span></div><p className="dim-t">{t("knowledge items", "عناصر معرفية")}</p>
+              <div style={{ width: 120, height: 4, background: "rgba(0,0,0,0.08)", borderRadius: 2, marginTop: 4 }}><div style={{ width: Math.min(100, (items.length / cap) * 100) + "%", height: "100%", background: items.length / cap > 0.85 ? "#ef4444" : "#0a0a0a", borderRadius: 2 }} /></div></div>
             <div><div style={{ fontSize: 30, fontWeight: 900 }}>{coverage}/{BRAIN_KINDS.length}</div><p className="dim-t">{t("areas covered", "مجالات مغطاة")}</p></div>
             <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.filter((i) => i.source === "learned").length}</div><p className="dim-t">{t("rules learned from your 👍", "قواعد تعلّمها من إعجاباتك")}</p></div>
             <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length ? "ON" : "OFF"}</div><p className="dim-t">{t("agents brain-aware", "الوكلاء متصلون")}</p></div>
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <button className="btn small ghost" onClick={() => {
+              const blob = new Blob([JSON.stringify({ exported: new Date().toISOString(), items }, null, 2)], { type: "application/json" });
+              const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "zhive-brain.json"; a.click();
+            }}>⬇ {t("Export my Brain (JSON)", "تصدير الدماغ")}</button>
           </div>
 
           {msg && <div className="kn-card" style={{ marginTop: 16, padding: "10px 16px" }}><p style={{ margin: 0 }}>{msg}</p></div>}
@@ -904,7 +937,7 @@ function BrainPage({ go, session, startDemo }) {
               <p className="eyebrow">{k.icon} {t(k.en, k.ar)} · {byKind[k.id].length}</p>
               <div className="kn-list">
                 {byKind[k.id].map((it) => (
-                  <div key={it.id} className="kn-card">
+                  <div key={it.id} className="kn-card" style={{ opacity: it.enabled === false ? 0.45 : 1 }}>
                     {editing?.id === it.id ? (
                       <>
                         <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}
@@ -922,6 +955,7 @@ function BrainPage({ go, session, startDemo }) {
                         <p className="dim-t" style={{ whiteSpace: "pre-wrap" }}>{it.content}</p>
                         <div className="row" style={{ display: "flex", gap: 10 }}>
                           <span className="link" onClick={(e) => { e.stopPropagation(); setEditing({ ...it }); }}>{t("Edit", "تعديل")}</span>
+                          <span className="link" onClick={async (e) => { e.stopPropagation(); await fetch("/api/brain", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, id: it.id, enabled: it.enabled === false }) }); await after(it.enabled === false ? t("Resumed — agents see this again", "استُؤنف") : t("Paused — hidden from agents", "أُوقف مؤقتًا")); }}>{it.enabled === false ? t("Resume", "استئناف") : t("Pause", "إيقاف")}</span>
                           <span className="link" onClick={(e) => { e.stopPropagation(); del(it.id); }} style={{ opacity: 0.6 }}>{t("Delete", "حذف")}</span>
                         </div>
                       </>
