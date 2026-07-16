@@ -168,13 +168,40 @@ function Markdown({ text }) {
 }
 
 // ——— API ———
+// ── ZHIVE Business Brain: module-level context injected into every AI call ──
+let BRAIN_CTX = "";
+let BRAIN_COUNT = 0;
+function brainUserId(session) {
+  if (!session) return null;
+  if (!session.demo) return session.email || session.id;
+  try {
+    let k = localStorage.getItem("zhive-brain-key");
+    if (!k) { k = "demo-" + Math.random().toString(36).slice(2, 10); localStorage.setItem("zhive-brain-key", k); }
+    return k;
+  } catch { return "demo-anon"; }
+}
+async function refreshBrainContext(session) {
+  const uid = brainUserId(session);
+  if (!uid) { BRAIN_CTX = ""; BRAIN_COUNT = 0; return; }
+  try {
+    const r = await fetch(`/api/brain?userId=${encodeURIComponent(uid)}&format=context`);
+    const d = await r.json();
+    BRAIN_CTX = d.context || "";
+    BRAIN_COUNT = d.count || 0;
+  } catch { /* keep previous */ }
+}
+const withBrain = (system) =>
+  BRAIN_CTX
+    ? `${system}\n\n══ BUSINESS BRAIN — verified knowledge about THIS founder's company. Treat as ground truth; use its exact prices, policies and terms; never contradict it. ══\n${BRAIN_CTX}══ END BUSINESS BRAIN ══`
+    : system;
+
 async function callClaude(system, messages, tier = "standard") {
   // Calls the Vercel serverless proxy (api/agent.js), which holds the API key
   // and routes tiers to right-sized models (light → fast/cheap, deep → synthesis).
   const res = await fetch("/api/agent", {
     method: "POST",
     headers: await apiHeaders(),
-    body: JSON.stringify({ tier, system, messages }),
+    body: JSON.stringify({ tier, system: withBrain(system), messages }),
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || "API error");
@@ -194,7 +221,7 @@ async function callClaudeStream(system, messages, tier = "standard", onDelta) {
   const res = await fetch("/api/agent", {
     method: "POST",
     headers: await apiHeaders(),
-    body: JSON.stringify({ tier, system, messages, stream: true }),
+    body: JSON.stringify({ tier, system: withBrain(system), messages, stream: true }),
   });
   const ctype = res.headers.get("content-type") || "";
   if (!ctype.includes("text/event-stream")) {
@@ -587,7 +614,7 @@ export default function ZhiveApp() {
 
   // routing — state-driven, synced to real URLs (/admin, /directory, /agent/:id …)
   // so deep links, refreshes, and back/forward all work (vercel.json rewrites make Vercel serve the SPA).
-  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin", "copilot"];
+  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin", "copilot", "brain"];
   const routeFromPath = () => {
     const parts = window.location.pathname.split("/").filter(Boolean);
     const view = parts[0] || "home";
@@ -633,6 +660,9 @@ export default function ZhiveApp() {
   useEffect(() => {
     if (session?.demo && session.expires < Date.now()) { try { localStorage.removeItem("zhive-demo"); } catch { /* ignore */ } setSession(null); }
   });
+
+  // Business Brain: load compiled context whenever the user changes
+  useEffect(() => { refreshBrainContext(session); }, [session]);
 
   // load purchases + orders whenever the signed-in user changes
   useEffect(() => {
@@ -717,6 +747,7 @@ export default function ZhiveApp() {
       {route.view === "workspace" && <Workspace session={session} purchases={purchases} myOrders={myOrders} biz={biz} saveBiz={saveBiz} go={go} startDemo={startDemo} />}
       {route.view === "admin" && <Admin />}
       {route.view === "copilot" && <CopilotPage go={go} session={session} startDemo={startDemo} />}
+      {route.view === "brain" && <BrainPage go={go} session={session} startDemo={startDemo} />}
       <footer className="foot">
         <span>zhive.xyz — {isCloud ? t("connected to Supabase", "متصل بقاعدة البيانات") : t("prototype mode (in-memory data)", "وضع النموذج التجريبي")} · {t("AI-generated planning material; verify before acting. No real payments are processed.", "محتوى تخطيطي مولّد بالذكاء الاصطناعي؛ تحقق قبل التنفيذ. لا تُعالج أي مدفوعات حقيقية.")}</span>
         <button className="link dim" onClick={() => go("admin")}>/admin</button>
@@ -725,6 +756,186 @@ export default function ZhiveApp() {
   );
 }
 
+
+
+// ════════ ZHIVE BUSINESS BRAIN — Phase 1 ════════
+const BRAIN_KINDS = [
+  { id: "profile", icon: "🏢", en: "Company profile", ar: "ملف الشركة" },
+  { id: "products", icon: "📦", en: "Products & services", ar: "المنتجات والخدمات" },
+  { id: "pricing", icon: "💰", en: "Pricing", ar: "الأسعار" },
+  { id: "policies", icon: "📜", en: "Policies", ar: "السياسات" },
+  { id: "customers", icon: "🤝", en: "Customers & market", ar: "العملاء والسوق" },
+  { id: "operations", icon: "⚙️", en: "Operations", ar: "العمليات" },
+  { id: "legal", icon: "⚖️", en: "Legal & compliance", ar: "القانوني" },
+  { id: "playbook", icon: "🧭", en: "How we do things", ar: "طريقة عملنا" },
+  { id: "notes", icon: "📝", en: "Notes", ar: "ملاحظات" },
+];
+
+function BrainPage({ go, session, startDemo }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [raw, setRaw] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [editing, setEditing] = useState(null); // item being edited
+  const [nTitle, setNTitle] = useState(""); const [nContent, setNContent] = useState(""); const [nKind, setNKind] = useState("notes");
+  const uid = brainUserId(session);
+
+  const load = async () => {
+    if (!uid) return;
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/brain?userId=${encodeURIComponent(uid)}`);
+      const d = await r.json();
+      setItems(d.items || []);
+    } catch { /* ignore */ }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, [uid]);
+
+  const after = async (message) => { setMsg(message); await load(); await refreshBrainContext(session); setTimeout(() => setMsg(""), 3500); };
+
+  const extract = async () => {
+    if (raw.trim().length < 30 || extracting) { setMsg("Paste at least a few sentences first."); return; }
+    setExtracting(true); setMsg("");
+    try {
+      const r = await fetch("/api/brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, action: "extract", raw }) });
+      const d = await r.json();
+      if (d.ok) { setRaw(""); await after(`🧠 Extracted ${d.added} knowledge items into your Brain`); }
+      else setMsg(d.error || "Extraction failed — try again");
+    } catch { setMsg("Extraction failed — try again"); }
+    setExtracting(false);
+  };
+
+  const addManual = async () => {
+    if (!nTitle.trim() || !nContent.trim()) { setMsg("Title and content required"); return; }
+    const r = await fetch("/api/brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, kind: nKind, title: nTitle, content: nContent }) });
+    const d = await r.json();
+    if (d.ok) { setNTitle(""); setNContent(""); await after("✓ Added to Brain"); }
+    else setMsg(d.error || "Add failed");
+  };
+
+  const saveEdit = async () => {
+    const r = await fetch("/api/brain", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: uid, id: editing.id, title: editing.title, content: editing.content, kind: editing.kind }) });
+    const d = await r.json();
+    if (d.ok) { setEditing(null); await after("✓ Updated"); }
+    else setMsg(d.error || "Update failed");
+  };
+
+  const del = async (id) => {
+    await fetch(`/api/brain?userId=${encodeURIComponent(uid)}&id=${id}`, { method: "DELETE" });
+    await after("Deleted");
+  };
+
+  const byKind = {};
+  for (const it of items) (byKind[it.kind] = byKind[it.kind] || []).push(it);
+  const coverage = BRAIN_KINDS.filter((k) => byKind[k.id]?.length).length;
+
+  return (
+    <main className="wrap">
+      <p className="eyebrow">{t("ZHIVE Business Brain", "دماغ الأعمال")}</p>
+      <h1>{t("Teach it once. Every agent knows it forever.", "علّمه مرة واحدة. كل وكيل يعرفه للأبد.")}</h1>
+      <p className="lede">{t("Your Brain is verified company knowledge — prices, policies, products, how you work. Every agent, pipeline and Copilot skill reads it automatically before doing any work for you.", "دماغك هو معرفة شركتك الموثّقة — الأسعار، السياسات، المنتجات، طريقة عملك. كل وكيل يقرأها تلقائيًا قبل أي عمل.")}</p>
+
+      {!session && (
+        <div className="kn-card" style={{ marginTop: 24 }}>
+          <h3>{t("Sign in to build your Brain", "سجّل الدخول لبناء دماغك")}</h3>
+          <div className="row" style={{ display: "flex", gap: 8 }}>
+            <button className="btn" onClick={() => startDemo && startDemo("brain")}>{t("Start 24h demo — instant", "ابدأ التجربة فورًا")}</button>
+            <button className="btn ghost" onClick={() => go("auth")}>{t("Sign in", "تسجيل الدخول")}</button>
+          </div>
+        </div>
+      )}
+
+      {session && (
+        <>
+          {/* Stats bar */}
+          <div className="row" style={{ display: "flex", gap: 20, marginTop: 24, flexWrap: "wrap" }}>
+            <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length}</div><p className="dim-t">{t("knowledge items", "عناصر معرفية")}</p></div>
+            <div><div style={{ fontSize: 30, fontWeight: 900 }}>{coverage}/{BRAIN_KINDS.length}</div><p className="dim-t">{t("areas covered", "مجالات مغطاة")}</p></div>
+            <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length ? "ON" : "OFF"}</div><p className="dim-t">{t("agents brain-aware", "الوكلاء متصلون")}</p></div>
+          </div>
+
+          {msg && <div className="kn-card" style={{ marginTop: 16, padding: "10px 16px" }}><p style={{ margin: 0 }}>{msg}</p></div>}
+
+          {/* Smart import */}
+          <div style={{ marginTop: 28, border: "2px solid #0a0a0a", borderRadius: 16, padding: 26 }}>
+            <p className="eyebrow">{t("Smart import — the 2-minute brain", "استيراد ذكي")}</p>
+            <h3 style={{ marginTop: 4 }}>🧠 {t("Paste anything. AI structures it.", "الصق أي شيء. الذكاء الاصطناعي ينظّمه.")}</h3>
+            <p className="dim-t">{t("Price lists, policies, your About page, WhatsApp catalog text, contracts, meeting notes — English or Arabic, mess is fine.", "قوائم أسعار، سياسات، نصوص واتساب، عقود — عربي أو إنجليزي، الفوضى مقبولة.")}</p>
+            <textarea value={raw} onChange={(e) => setRaw(e.target.value)} rows={7}
+              placeholder={t("Paste your business knowledge dump here…", "الصق معلومات عملك هنا…")}
+              style={{ width: "100%", marginTop: 10, padding: 14, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none", resize: "vertical" }} />
+            <button className="btn" style={{ marginTop: 10 }} onClick={extract} disabled={extracting}>
+              {extracting ? t("Extracting…", "جارٍ الاستخراج…") : t("Build my Brain →", "ابنِ دماغي →")}
+            </button>
+          </div>
+
+          {/* Manual add */}
+          <div style={{ marginTop: 20, border: "1px solid rgba(0,0,0,0.12)", borderRadius: 16, padding: 22 }}>
+            <p className="eyebrow">{t("Add one item manually", "إضافة يدوية")}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 10, marginTop: 10 }}>
+              <select value={nKind} onChange={(e) => setNKind(e.target.value)} style={{ padding: "10px 12px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit" }}>
+                {BRAIN_KINDS.map((k) => <option key={k.id} value={k.id}>{k.icon} {t(k.en, k.ar)}</option>)}
+              </select>
+              <input value={nTitle} onChange={(e) => setNTitle(e.target.value)} placeholder={t("Title — e.g. Refund policy", "العنوان")}
+                style={{ padding: "10px 12px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit" }} />
+            </div>
+            <textarea value={nContent} onChange={(e) => setNContent(e.target.value)} rows={3} placeholder={t("The knowledge itself…", "المحتوى…")}
+              style={{ width: "100%", marginTop: 10, padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", resize: "vertical" }} />
+            <button className="btn ghost" style={{ marginTop: 8 }} onClick={addManual}>{t("Add to Brain", "أضِف")}</button>
+          </div>
+
+          {/* Items by kind */}
+          {loading && <p className="dim-t" style={{ marginTop: 24 }}>{t("Loading…", "جارٍ التحميل…")}</p>}
+          {BRAIN_KINDS.filter((k) => byKind[k.id]?.length).map((k) => (
+            <div key={k.id} style={{ marginTop: 30 }}>
+              <p className="eyebrow">{k.icon} {t(k.en, k.ar)} · {byKind[k.id].length}</p>
+              <div className="kn-list">
+                {byKind[k.id].map((it) => (
+                  <div key={it.id} className="kn-card">
+                    {editing?.id === it.id ? (
+                      <>
+                        <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                          style={{ width: "100%", padding: "8px 10px", border: "1px solid rgba(0,0,0,0.15)", borderRadius: 8, fontSize: 14, fontFamily: "inherit", fontWeight: 700 }} />
+                        <textarea value={editing.content} onChange={(e) => setEditing({ ...editing, content: e.target.value })} rows={4}
+                          style={{ width: "100%", marginTop: 8, padding: 10, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 8, fontSize: 13, fontFamily: "inherit", resize: "vertical" }} />
+                        <div className="row" style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          <button className="btn small" onClick={saveEdit}>{t("Save", "حفظ")}</button>
+                          <button className="btn small ghost" onClick={() => setEditing(null)}>{t("Cancel", "إلغاء")}</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <h3>{it.title}</h3>
+                        <p className="dim-t" style={{ whiteSpace: "pre-wrap" }}>{it.content}</p>
+                        <div className="row" style={{ display: "flex", gap: 10 }}>
+                          <span className="link" onClick={(e) => { e.stopPropagation(); setEditing({ ...it }); }}>{t("Edit", "تعديل")}</span>
+                          <span className="link" onClick={(e) => { e.stopPropagation(); del(it.id); }} style={{ opacity: 0.6 }}>{t("Delete", "حذف")}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {items.length > 0 && (
+            <div className="kn-card" style={{ marginTop: 32, background: "#0a0a0a", color: "#fff" }}>
+              <h3 style={{ color: "#fff" }}>🧠 {t("Your Brain is live", "دماغك يعمل الآن")}</h3>
+              <p style={{ color: "#bbb" }}>{t("Every agent, pipeline and Copilot skill now reads this knowledge automatically. Try /grill-me — it will grill you using your real numbers.", "كل وكيل يقرأ هذه المعرفة تلقائيًا الآن. جرّب المساعد — سيستخدم أرقامك الحقيقية.")}</p>
+              <div className="row" style={{ display: "flex", gap: 8 }}>
+                <button className="btn" style={{ background: "#fff", color: "#0a0a0a" }} onClick={() => go("copilot")}>{t("Test with Copilot →", "جرّب مع المساعد →")}</button>
+                <button className="btn ghost" style={{ borderColor: "#555", color: "#fff" }} onClick={() => go("directory")}>{t("Browse agents", "تصفّح الوكلاء")}</button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </main>
+  );
+}
 
 // ════════ FOUNDER'S AI COPILOT — 5 production skills ════════
 const COPILOT_SKILLS = [
@@ -976,6 +1187,7 @@ function Header({ go, session, cart, logout, lang, setLang }) {
         <button className="link" onClick={() => go("pipelines")}>{t("Pipelines", "خطوط الوكلاء")}</button>
         <button className="link" onClick={() => go("lab")}>{t("Readiness Lab", "مختبر الجاهزية")}</button>
         <button className="link" onClick={() => go("copilot")}>{t("Copilot", "مساعد المؤسس")}</button>
+        <button className="link" onClick={() => go("brain")}>{t("Brain", "الدماغ")}</button>
         <button className="link" onClick={() => go("about")}>{t("About", "من نحن")}</button>
         <button className="link" onClick={() => go("knowledge")}>{t("Knowledge", "المعرفة")}</button>
         <button className="link" onClick={() => go("cart")}>{t("Cart", "السلة")}{cart.length > 0 ? ` (${cart.length})` : ""}</button>
