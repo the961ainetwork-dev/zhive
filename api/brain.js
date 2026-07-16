@@ -8,6 +8,12 @@
 
 const SUPABASE_URL = 'https://ldlzpnuvkudmvpvnbomc.supabase.co';
 const KINDS = ['profile', 'products', 'pricing', 'policies', 'customers', 'operations', 'legal', 'playbook', 'notes'];
+const CAP = (userId) => (String(userId).startsWith('demo') ? 15 : 60); // Phase 3: plan-based brain capacity
+
+async function countItems(uid, key) {
+  const r = await sb(`brain_items?user_id=eq.${uid}&select=id`, { method: 'GET' }, key);
+  return r.ok ? (await r.json()).length : 0;
+}
 
 function sb(path, opts, key) {
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -41,8 +47,9 @@ export default async function handler(req, res) {
     // ── LIST or COMPILED CONTEXT ──
     if (req.method === 'GET') {
       const r = await sb(`brain_items?user_id=eq.${uid}&select=*&order=kind.asc,id.asc`, { method: 'GET' }, sbKey);
-      const items = r.ok ? await r.json() : [];
+      let items = r.ok ? await r.json() : [];
       if (req.query?.format === 'context') {
+        items = items.filter(i => i.enabled !== false);
         if (!items.length) return res.status(200).json({ context: '' });
         const byKind = {};
         for (const it of items) (byKind[it.kind] = byKind[it.kind] || []).push(it);
@@ -55,7 +62,7 @@ export default async function handler(req, res) {
         if (ctx.length > 24000) ctx = ctx.slice(0, 24000) + '\n[...brain truncated]';
         return res.status(200).json({ context: ctx, count: items.length });
       }
-      return res.status(200).json({ items });
+      return res.status(200).json({ items, cap: CAP(userId) });
     }
 
     // ── ADD, AI-EXTRACT, or LEARN-FROM-APPROVAL ──
@@ -103,6 +110,10 @@ ${out}`
         rules = (rules || []).filter(r => r.title && r.content)
           .map(r => ({ user_id: userId, kind: 'playbook', source: 'learned', title: String(r.title).slice(0, 140), content: String(r.content).slice(0, 2000) }));
         if (!rules.length) return res.status(200).json({ ok: true, learned: 0 });
+        const used = await countItems(uid, sbKey);
+        const room = CAP(userId) - used;
+        if (room <= 0) return res.status(200).json({ ok: true, learned: 0, full: true });
+        rules = rules.slice(0, room);
         const ir = await sb('brain_items', { method: 'POST', body: JSON.stringify(rules) }, sbKey);
         if (!ir.ok) return res.status(200).json({ ok: false, learned: 0 });
 
@@ -115,7 +126,7 @@ ${out}`
             await sb(`brain_items?id=in.(${evict})&user_id=eq.${uid}`, { method: 'DELETE' }, sbKey);
           }
         }
-        return res.status(200).json({ ok: true, learned: rules.length });
+        return res.status(200).json({ ok: true, learned: rules.length, titles: rules.map(r => r.title) });
       }
 
       if (body.action === 'extract') {
@@ -157,6 +168,10 @@ ${raw}`
         items = (items || []).filter(i => i.title && i.content)
           .map(i => ({ user_id: userId, kind: KINDS.includes(i.kind) ? i.kind : 'notes', title: String(i.title).slice(0, 140), content: String(i.content).slice(0, 6000) }));
         if (!items.length) return res.status(400).json({ error: 'Nothing extractable found' });
+        const usedX = await countItems(uid, sbKey);
+        const roomX = CAP(userId) - usedX;
+        if (roomX <= 0) return res.status(400).json({ error: `Brain is full (${CAP(userId)} items). Delete some items or upgrade.` });
+        items = items.slice(0, roomX);
         const ir = await sb('brain_items', { method: 'POST', body: JSON.stringify(items) }, sbKey);
         if (!ir.ok) return res.status(500).json({ error: 'Insert failed: ' + (await ir.text()).slice(0, 200) });
         return res.status(200).json({ ok: true, added: items.length, items: await ir.json() });
@@ -165,6 +180,8 @@ ${raw}`
       // plain add
       const { kind, title, content } = body;
       if (!title || !content) return res.status(400).json({ error: 'title and content required' });
+      const usedA = await countItems(uid, sbKey);
+      if (usedA >= CAP(userId)) return res.status(400).json({ error: `Brain is full (${CAP(userId)} items). Delete some items or upgrade.` });
       const row = { user_id: userId, kind: KINDS.includes(kind) ? kind : 'notes', title: String(title).slice(0, 140), content: String(content).slice(0, 6000) };
       const r = await sb('brain_items', { method: 'POST', body: JSON.stringify([row]) }, sbKey);
       if (!r.ok) return res.status(500).json({ error: 'Insert failed: ' + (await r.text()).slice(0, 200) });
@@ -179,6 +196,7 @@ ${raw}`
       if (title) patch.title = String(title).slice(0, 140);
       if (content) patch.content = String(content).slice(0, 6000);
       if (kind && KINDS.includes(kind)) patch.kind = kind;
+      if (typeof body.enabled === 'boolean') patch.enabled = body.enabled;
       const r = await sb(`brain_items?id=eq.${Number(id)}&user_id=eq.${uid}`, { method: 'PATCH', body: JSON.stringify(patch) }, sbKey);
       if (!r.ok) return res.status(500).json({ error: 'Update failed' });
       return res.status(200).json({ ok: true });
