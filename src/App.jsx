@@ -190,6 +190,16 @@ async function refreshBrainContext(session) {
     BRAIN_COUNT = d.count || 0;
   } catch { /* keep previous */ }
 }
+// Phase 2 learning loop: an approval distills into a reusable playbook rule for ALL agents
+function learnIntoBrain(session, agentName, task, output) {
+  const uid = brainUserId(session);
+  if (!uid || !output || String(output).length < 60) return;
+  fetch("/api/brain", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId: uid, action: "learn", agentName, task, output }),
+  }).then((r) => r.json()).then((d) => { if (d.learned) refreshBrainContext(session); }).catch(() => { /* silent */ });
+}
+
 const withBrain = (system) =>
   BRAIN_CTX
     ? `${system}\n\n══ BUSINESS BRAIN — verified knowledge about THIS founder's company. Treat as ground truth; use its exact prices, policies and terms; never contradict it. ══\n${BRAIN_CTX}══ END BUSINESS BRAIN ══`
@@ -853,6 +863,7 @@ function BrainPage({ go, session, startDemo }) {
           <div className="row" style={{ display: "flex", gap: 20, marginTop: 24, flexWrap: "wrap" }}>
             <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length}</div><p className="dim-t">{t("knowledge items", "عناصر معرفية")}</p></div>
             <div><div style={{ fontSize: 30, fontWeight: 900 }}>{coverage}/{BRAIN_KINDS.length}</div><p className="dim-t">{t("areas covered", "مجالات مغطاة")}</p></div>
+            <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.filter((i) => i.source === "learned").length}</div><p className="dim-t">{t("rules learned from your 👍", "قواعد تعلّمها من إعجاباتك")}</p></div>
             <div><div style={{ fontSize: 30, fontWeight: 900 }}>{items.length ? "ON" : "OFF"}</div><p className="dim-t">{t("agents brain-aware", "الوكلاء متصلون")}</p></div>
           </div>
 
@@ -907,7 +918,7 @@ function BrainPage({ go, session, startDemo }) {
                       </>
                     ) : (
                       <>
-                        <h3>{it.title}</h3>
+                        <h3>{it.title} {it.source === "learned" && <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 99, background: "#0a0a0a", color: "#fff", verticalAlign: "middle" }}>✦ learned</span>}</h3>
                         <p className="dim-t" style={{ whiteSpace: "pre-wrap" }}>{it.content}</p>
                         <div className="row" style={{ display: "flex", gap: 10 }}>
                           <span className="link" onClick={(e) => { e.stopPropagation(); setEditing({ ...it }); }}>{t("Edit", "تعديل")}</span>
@@ -1163,6 +1174,7 @@ function CopilotPage({ go, session, startDemo }) {
               <Markdown text={output} />
               <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
                 <button className="btn small ghost" onClick={() => { navigator.clipboard?.writeText(output); }}>📋 Copy</button>
+                <button className="btn small ghost" onClick={() => { learnIntoBrain(session, active.name, input, output); }}>👍 Teach my Brain</button>
                 <button className="btn small ghost" onClick={() => { const w = window.open("", "_blank"); w.document.write(`<html><head><title>${active.name} — ZHIVE Copilot</title><style>body{font-family:Arial;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7;color:#0a0a0a}pre{white-space:pre-wrap}</style></head><body><h3>ZHIVE · ${active.cmd}</h3><pre>${output.replace(/</g, "&lt;")}</pre></body></html>`); w.document.close(); setTimeout(() => w.print(), 300); }}>📄 PDF</button>
               </div>
             </div>
@@ -2589,6 +2601,7 @@ function AgentPage({ agent, go, inCart, addToCart, session, biz }) {
     const s = steps[i];
     if (!s) return;
     store.saveFeedback(session, { agentId: s.agent.id, verdict, text: s.text, task: demoInput });
+    if (verdict === "up") learnIntoBrain(session, s.agent.name, demoInput, s.text);
     setSteps((list) => list.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)));
   }
 
@@ -2859,6 +2872,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
       const s = st.steps?.[i];
       if (!s) return;
       store.saveFeedback(session, { agentId: s.agent.id, verdict, text: s.text, task: st.input });
+      if (verdict === "up") learnIntoBrain(session, s.agent.name, st.input, s.text);
       setR(agentId, { steps: st.steps.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)) });
     };
   }
@@ -2869,6 +2883,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
       const s = st.steps?.[i];
       if (!s) return;
       store.saveFeedback(session, { agentId: s.agent.id, verdict, text: s.text, task: st.input });
+      if (verdict === "up") learnIntoBrain(session, s.agent.name, st.input, s.text);
       setP(pid, { steps: st.steps.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)) });
     };
   }
@@ -2879,6 +2894,7 @@ function Workspace({ session, purchases, myOrders, biz, saveBiz, go, startDemo }
       if (!s) return;
       const loop = loops.find((l) => l.id === run.loop_id);
       store.saveFeedback(session, { agentId: s.id || s.name, verdict, text: s.text, task: loop?.input || "" });
+      if (verdict === "up") learnIntoBrain(session, s.name || s.id, loop?.input || "", s.text);
       setLoopRuns((rs) => rs.map((r) => (r.id === run.id
         ? { ...r, steps: r.steps.map((x, idx) => (idx === i ? { ...x, fb: verdict } : x)) } : r)));
     };
