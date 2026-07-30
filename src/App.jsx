@@ -2166,6 +2166,379 @@ return handle_fallback_gracefully(state)` },
       { t: "p", x: "The uncomfortable part of this scenario isn't the technology — most of it exists in early form today. It's the management question: what do you do with human attention when execution is free? The companies experimenting now are writing the answer. 2035 is a scenario. The direction is not." },
     ],
   },
+  // ══════════════ RESEARCH PAPERS — Maan Barazy ══════════════
+  {
+    id: "eios-agent-economy", kind: "Research thesis",
+    title: "Architecting the Agent Economy: Enterprise Intelligence Operating Systems (EIOS) and the Infrastructure of Autonomous Labor",
+    dek: "Why the bottleneck in enterprise automation is no longer model intelligence, but the fragmentation of institutional domain knowledge — and the operating system that fixes it.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "Abstract — This thesis explores the structural evolution of corporate computing from human-centric software-as-a-service (SaaS) applications to autonomous Enterprise Intelligence Operating Systems (EIOS). It positions the current bottleneck in enterprise automation not as a limitation of base-model reasoning, but as a crisis of fragmented institutional domain knowledge. By introducing an agent-native software paradigm, the paper examines the technical architecture, operational layers, and macro-economic implications of an ecosystem built for autonomous AI employees." },
+
+      { t: "h", x: "1 · The epistemological pivot in enterprise automation" },
+      { t: "p", x: "For decades, algorithmic structures have served as the silent architecture of commerce, translating human directives into deterministic computational outcomes. The contemporary enterprise now faces a fundamental shift: the transition from software that stores data to software that executes cognitive workflows." },
+      { t: "p", x: "While frontier large language models have achieved unprecedented velocity in reasoning, their deployment inside the enterprise remains constrained. The primary barrier is no longer model intelligence but the fragmentation of localized domain knowledge. Institutional expertise stays trapped across disconnected silos — unstructured emails, ephemeral messaging channels, support logs, and legacy databases. Operationalizing that scattered know-how requires a new computational primitive: a decentralized organizational cognition layer that functions as an operating system for autonomous agents." },
+
+      { t: "h", x: "2 · From Software-as-a-Service to Software-as-an-Employee" },
+      { t: "p", x: "Enterprise computing follows a cyclical pattern where each technological revolution creates a native software layer optimized for its primary operator." },
+      { t: "flow", x: ["Mainframe / terminals", "PC / GUI", "Internet / SaaS", "Mobile / apps", "AI agents / machine interfaces"] },
+      { t: "p", x: "The next trillion actors using digital infrastructure will not be humans clicking buttons in a graphical interface, but autonomous software agents executing cross-functional tasks. Designing software around visual layouts, forms, and dashboards therefore introduces unnecessary friction. Agent-native systems reject visual representation in favor of machine-readable protocols — structured APIs, Model Context Protocol (MCP) architectures, and command-line interfaces. The paradigm shifts from selling subscriptions to selling verifiable outcomes: from SaaS to Software-as-an-Employee (SaaE)." },
+
+      { t: "h", x: "3 · The four-layer architecture of the Agent Internet" },
+      { t: "tl", x: [
+        ["Layer 1 — Human Interface", "Human supervisors, strategic exception handlers, and legacy applications maintaining oversight of organizational KPIs."],
+        ["Layer 2 — Cognitive Processing", "Foundational LLMs (OpenAI, Anthropic, Gemini) supplying reasoning, intent classification, and real-time planning."],
+        ["Layer 3 — Agent Infrastructure", "The subsystem governing autonomous interaction: identity verification (OAuth for agents), reputation metrics, machine-to-machine micro-payments, and capability discovery."],
+        ["Layer 4 — Enterprise Integration", "The transactional backbone: ERP, CRM, and supply-chain databases where execution actually lands."],
+      ]},
+
+      { t: "h", x: "4 · Technical architecture of the EIOS" },
+      { t: "p", x: "Rather than building siloed knowledge graphs or document chatbots, the enterprise requires a unified platform where hundreds of specialized agents can securely plug in. The topology places an executive dashboard over four engines — Knowledge, Skills, Memory, and Agent — which sit above the connective tissue of Email, CRM, ERP, Slack, Teams, GitHub, and Notion, all grounded in company databases." },
+      { t: "code", x: `           ┌────────────────────┐
+           │ Executive Dashboard│
+           └─────────┬──────────┘
+   ┌───────────┬─────┴─────┬───────────┐
+ Knowledge    Skills     Memory      Agent
+  Engine      Engine     Engine      Engine
+   └───────────┴───────────┴───────────┘
+ Email · CRM · ERP · Slack · Teams · GitHub · Notion
+              Company Databases` },
+      { t: "grid", x: [
+        ["Frontend", "Next.js, optimized for executive analytics and administrative control."],
+        ["Backend orchestration", "FastAPI delivering low-latency asynchronous routing."],
+        ["Vector subsystem", "Pinecone or Weaviate managing high-dimensional embeddings for semantic indexing."],
+        ["Relational & graph storage", "PostgreSQL for deterministic system state, Neo4j for complex entity dependencies."],
+        ["Operational adapters", "Custom MCP servers providing secure read/write pipelines into Slack, HubSpot, SAP, and Jira."],
+      ]},
+
+      { t: "h", x: "5 · Phased implementation roadmap" },
+      { t: "tl", x: [
+        ["Phase 1 — Knowledge Capture (Days 1–90)", "Deploy automated micro-extractors across Gmail, Outlook, Slack and Drive. Ingest raw unstructured files, run semantic chunking, and compile a foundational repository of institutional facts within minutes of initialization."],
+        ["Phase 2 — Relational Topology", "Convert isolated text entries into interconnected nodes, mapping dependencies between accounts, invoices, tickets, engineers, projects, and decisions to give the system contextual awareness."],
+        ["Phase 3 — Operational Mapping", "Monitor historical patterns to detect implicit business practices — how a complaint moves from support through approval to finance without any documented process."],
+        ["Phase 4 — Executable Skills", "Translate observed workflows into machine-executable JSON with clear parameters, conditional variables, and compliance checkpoints."],
+        ["Phase 5 — Autonomous Execution", "Deploy background agents that orchestrate complex workflows: a command like 'process standard refund for client X' triggers CRM login, policy verification, approval logging, and accounting routing."],
+      ]},
+
+      { t: "h", x: "6 · Token economics and monetization" },
+      { t: "vs", head: ["Legacy SaaS logic", "EIOS value capture"], rows: [
+        ["Per-seat licensing", "Tiered SaaE subscriptions scaled by headcount"],
+        ["Flat API token billing", "Consumption action-credits mapped to completed tasks"],
+        ["Closed feature set", "Skills marketplace with commission on third-party extensions"],
+        ["Uniform pricing", "Integration surcharges by connected-source complexity"],
+      ]},
+      { t: "p", x: "Illustrative tiering ranges from Starter ($99/mo, up to 10 employees) and Growth ($499/mo, up to 50) to Business ($1,999/mo, up to 250) and custom Enterprise packaging ($5,000–$50,000+/mo). Outcome-based credits move billing away from token counting toward verified operations — for example, 100,000 autonomous processing actions for $199/month. A decentralized skills marketplace lets third-party developers distribute compliance-vetted modules, with the platform retaining a 20–30% transaction fee." },
+
+      { t: "h", x: "7 · The long-term flywheel of corporate cognition" },
+      { t: "pull", x: "Competitive advantage in enterprise software belongs to platforms that control the intelligence layer, not the application layer." },
+      { t: "p", x: "Deploying an EIOS initiates a self-reinforcing flywheel: connected data feeds the central brain, which converts institutional knowledge into structured skills, which improves automation accuracy, which captures more workflows. The companies that define the protocols, security models, and knowledge graphs for autonomous labor will form the core infrastructure of modern organizational intelligence." },
+    ],
+  },
+  {
+    id: "saas-to-saae", kind: "Research paper",
+    title: "From SaaS to SaaE: The Enterprise Intelligence Operating System and the Agent Economy",
+    dek: "A novel architectural paradigm for enterprise computing — the Company Brain as an operating system, a five-phase methodology, and an outcome-based commercial model for the Agent Economy.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "Abstract — As large language models transition from conversational interfaces to autonomous execution engines, enterprises face an institutional bottleneck: the fragmentation of domain knowledge across unstructured silos. Concurrently, the internet is shifting toward an Agent Economy where autonomous agents — not human operators — become the primary consumers of digital infrastructure. This paper formalizes the Enterprise Intelligence Operating System (EIOS) as the cognitive and operational abstraction layer sitting between legacy software (ERP, CRM) and fleets of multi-agent AI workforces." },
+
+      { t: "h", x: "1 · From SaaS to SaaE" },
+      { t: "p", x: "For decades, enterprise software was optimized for human-computer interaction. Systems of record — ERPs, CRMs, databases — were designed around graphical interfaces requiring manual data entry, button clicks, and human oversight. Advances in LLM reasoning, multi-agent frameworks, and standardization protocols such as MCP have altered the production function of enterprise technology. The contemporary bottleneck is no longer model intelligence; it is the extraction, formalization, and operationalization of contextual domain knowledge." },
+      { t: "code", x: `[Legacy Model]   Human → GUI → Disconnected Software Systems
+[Emergent Model] AI Agent → Enterprise Intelligence OS → Agent-Native Systems & Legacy APIs` },
+      { t: "p", x: "We propose a shift from Software as a Service to Software as an Employee (SaaE). Enterprise software ceases to be a passive tool repository and becomes a collection of specialized autonomous workers operating within a unified intelligent infrastructure." },
+
+      { t: "h", x: "2 · The Company Brain as an operating system" },
+      { t: "p", x: "Every enterprise runs on tacit knowledge, implicit heuristics, and fragmented channels — Slack threads, emails, tickets, legacy docs. Humans maintain continuity by navigating these through memory and social networks. For autonomous agents to execute workflows safely, they need a deterministic, machine-readable primitive: an organizational cognition layer, or Company Brain." },
+      { t: "p", x: "Crucially, this cannot merely be an application-level chatbot or an isolated retrieval-augmented vector database over documents. It must be designed as an operating system. Treating organizational intelligence as an OS rather than an application establishes a scalable, secure, standardized platform where hundreds of heterogeneous agents can plug in, discover capabilities, and execute tasks." },
+
+      { t: "h", x: "3 · Five-phase evolutionary framework" },
+      { t: "tl", x: [
+        ["Phase 1 — Knowledge Capture MVP (Day 1–90)", "Zero-friction ingestion of corporate knowledge. Native OAuth/API integrations connect to Gmail, Outlook, Slack, Teams, Drive, Notion, Confluence and SharePoint, parsing data into a baseline of unstructured context within minutes."],
+        ["Phase 2 — Connected Knowledge Graph", "Transform document entities into an interconnected semantic graph — a Customer linked to an Invoice, to a Support Ticket, resolved by an Engineer, documented in a Meeting Decision — giving agents relational context and institutional hierarchy."],
+        ["Phase 3 — Algorithmic Workflow Discovery", "Inductively analyze systemic behavior to discover workflows automatically, rather than requiring manual business-process mapping."],
+        ["Phase 4 — Executable Skills Engine", "Refactor historical information into deterministic, machine-readable Skills — JSON schemas defining input variables, conditional constraints, risk tolerances, and approval thresholds."],
+        ["Phase 5 — Full Autonomous Agency", "Operators shift to supervisory exception-handling. Users issue declarative natural-language commands and the EIOS orchestrates agents across CRMs, ledgers, and communication channels."],
+      ]},
+      { t: "code", x: `{
+  "skill": "Issue Refund",
+  "requirements": {
+    "customer_tier": "VIP",
+    "threshold_limit": 500.00,
+    "routing_logic": ["Finance", "Manager Approval"]
+  },
+  "execution_confidence_score": 0.98
+}` },
+
+      { t: "h", x: "4 · Distributed micro-brain architecture" },
+      { t: "p", x: "The cognitive layer relies on specialized micro-services executing in parallel: a Knowledge Extractor ingesting unstructured logs, an Entity Extractor identifying corporate nouns, a Decision Extractor capturing rationale and financial authorizations, a Workflow Detector mapping sequential step chains, a Skills Generator compiling JSON manifests, and a Memory Engine recording not just the action taken but the systemic rationale and outcome." },
+
+      { t: "h", x: "5 · Production use cases" },
+      { t: "grid", x: [
+        ["Supply-chain exception management", "A carrier delay is flagged by the Knowledge Extractor; the Entity Extractor maps the tracking ID to an open PO in SAP; the graph identifies dependent VIP contracts; the Skills Engine invokes pre-approved Alternative Carrier Procurement; a procurement agent books spot freight, updates the ledger, and drafts confirmations."],
+        ["Continuous regulatory auditing", "The Decision Extractor monitors high-risk events; when a manager overrides a pricing bracket, the EIOS creates a permanent compliance node linking the Slack request, CRM history, justification, and executive authorization — surfacing real-time Critical Knowledge Risk indices on the dashboard."],
+      ]},
+
+      { t: "h", x: "6 · Enterprise case studies" },
+      { t: "stats", x: [["4.5h → 12min", "Logistics Corp: resolution time after mapping 14,000 records"], ["18", "uncodified exception routines formalized"], ["68% / 99.2%", "FinTech Global: disputes handled autonomously, at accuracy"]] },
+      { t: "p", x: "A global logistics enterprise implemented Phases 1–2 across dispatch and account teams; over 90 days it mapped 14,000 operational records into a knowledge graph, cutting average variance resolution from 4.5 hours to under 12 minutes and formalizing 18 exception routines previously known only to senior planners. A merchant processor deployed the EIOS on an outcome-based tier; within two quarters, 68% of standard dispute operations ran autonomously at 99.2% accuracy, separating volume growth from headcount." },
+
+      { t: "h", x: "7 · The Agent Internet and commercialization" },
+      { t: "tl", x: [
+        ["Layer 1 — Human", "Consumers, supervisors, legacy browsers, mobile GUIs."],
+        ["Layer 2 — Artificial Intelligence", "Foundation models, context tracking, reasoning loops, planning primitives."],
+        ["Layer 3 — Agent Infrastructure", "Identity protocols (OAuth for AI), M2M billing, discovery registries, capability manifests."],
+        ["Layer 4 — Enterprise (EIOS)", "Knowledge extraction, skills engines, corporate governance, system APIs."],
+      ]},
+      { t: "vs", head: ["Legacy monetization", "Agent-native monetization"], rows: [
+        ["Per-seat licensing", "Tiered SaaE infrastructure ($99–$50,000+/mo)"],
+        ["API token counting", "Outcome credits ($199 per 100,000 workflows)"],
+        ["Closed feature set", "Skills marketplace (20–30% fee)"],
+        ["Flat connectivity", "Integration & compliance premiums"],
+      ]},
+      { t: "pull", x: "As individual point-solution agents commoditize, the foundational value of the enterprise AI era concentrates in the infrastructure layer that governs context, enforces policy, and maps execution." },
+    ],
+  },
+  {
+    id: "mena-government-ai", kind: "Research thesis",
+    title: "MENA Government AI Infrastructure & Sovereign Execution: The Race for Autonomous Power, National Data Lakes, and Regulatory Bottlenecks",
+    dek: "While regional enterprises struggle from pilot to production, MENA governments are executing an unprecedented shift from strategic framework to physical infrastructure — treating AI as a pillar of national sovereignty.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "Abstract — Led by the GCC bloc, MENA states are treating artificial intelligence not as a software upgrade but as a core pillar of national sovereignty. With Saudi Arabia designating 2026 the 'Year of Artificial Intelligence' and the UAE integrating state-backed models into public services, governments are building massive data lakes, securing megawatt-scale compute, and rewriting public-sector automation. This top-down model faces critical friction: reliance on foreign hardware, pressure on power grids, and the challenge of balancing data sovereignty with cross-border interoperability." },
+
+      { t: "h", x: "1 · Turning vision into steel" },
+      { t: "p", x: "The defining characteristic of MENA government AI programs is a focus on physical, localized infrastructure to guarantee digital sovereignty. Rather than relying strictly on Western hyperscale cloud, regional states are investing billions to build domestic compute ecosystems — sovereign supercomputing and data centers, unified state data repositories, and mandatory public-sector policy frameworks." },
+      { t: "stats", x: [["480 MW", "Hexagon: world's largest government data center"], ["430+", "systems consolidated into the National Data Lake"], ["1M", "Saudis targeted by the SAMAI AI-literacy initiative"]] },
+      { t: "p", x: "In early 2026 Saudi Arabia inaugurated Hexagon, a 480-megawatt facility operated alongside the Shaheen III supercomputer, giving state entities the power to train and deploy models domestically. SDAIA consolidated more than 430 separate government systems into a centralized National Data Lake, a single source of truth enabling cross-ministry agents to act on state data in real time. The SAMAI initiative and a mandatory national AI curriculum across universities embed literacy into the civil workforce." },
+
+      { t: "h", x: "2 · Regional government playbook" },
+      { t: "vs", head: ["GCC Apex (Saudi, UAE, Qatar)", "Levant & North Africa"], rows: [
+        ["Sovereign megawatt compute; localized models (Falcon, Jais)", "Distributed edge/cloud; heavy reliance on remote Western nodes"],
+        ["Autonomous governance: smart-city, predictive healthcare, algorithmic budgeting", "E-government: civil registries, licensing, upskilling; agribusiness & water optimization"],
+        ["Proactive sandboxing; mandatory procurement frameworks", "Evolving frameworks; outdated data-protection acts; few AI-specific regulators"],
+      ]},
+
+      { t: "h", x: "3 · Structural friction points" },
+      { t: "grid", x: [
+        ["Grid & resource nexus", "High-density AI centers consume vast power and water for cooling. In arid climates, facilities like Hexagon stress local grids, forcing a pivot to sustainable strategies — targeting PUE below 1.3 and liquid-cooled multi-GPU nodes."],
+        ["Procurement & accountability", "SDAIA's AI Adoption Framework codifies five pillars — data governance, model accountability, transparency, human oversight, risk management — acting as a strict filter: vendors who cannot cryptographically prove compliance lose state contracts."],
+        ["Asymmetric talent & compute", "The GCC readily acquires top talent and sovereign hardware; neighboring Levantine and North African states face brain drain and long hardware lead times, creating a bifurcated regional ecosystem."],
+      ]},
+
+      { t: "h", x: "4 · Government action case studies" },
+      { t: "p", x: "Saudi Arabia's SDAIA Regulatory Sandbox requires public entities to test agentic workflows in an isolated live data-privacy environment before deployment — for example, AI ophthalmology diagnostics are evaluated for anonymization and model confidence before integration into the National Data Lake. In the UAE, Abu Dhabi integrated its open-source Falcon model into municipal platforms, deploying agents to parse construction licenses, verify environmental reports, and update zoning registries — reducing license processing from weeks to under 12 minutes on sovereign-owned clusters." },
+
+      { t: "h", x: "5 · The sovereign AI blueprint" },
+      { t: "pull", x: "True sovereignty is not achieved by purchasing thousands of chips; it requires resolving energy constraints, scaling local talent, and bridging the gap between hyper-capitalized Gulf hubs and the broader regional economy." },
+      { t: "p", x: "By investing in physical hardware, consolidating records into national data lakes, and establishing public-sector compliance frameworks, MENA governments are creating a robust blueprint for sovereign tech execution. The long-term success of this transformation depends on how effectively the region resolves its energy and cooling constraints and closes the infrastructure gap." },
+    ],
+  },
+  {
+    id: "moonshot-ai-hegemony", kind: "Analyst insight",
+    title: "The Dark Side of the Moon in Global AI Hegemony: Moonshot AI, Computational Sovereignty, and the Disruption of Western Frontier Models",
+    dek: "A case study of Moonshot AI and its open-weight Kimi K3 — how structural capital, cultural synthesis, and asymmetric engineering challenge Western technological hegemony.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "Abstract — This thesis investigates the geopolitical and architectural dynamics of the global AI arms race through a case study of Moonshot AI (Beijing). It explores how capital allocation, cultural synthesis, and open-weight engineering intersect to challenge Western hegemony — specifically the release of Kimi K3 and its capacity to disrupt closed-source Silicon Valley monopolies." },
+
+      { t: "h", x: "1 · The bipolarity of silicon and statecraft" },
+      { t: "p", x: "The generative AI landscape is often conceptualized as a monolithic hegemony dominated by North American labs. This underestimates an adaptive counter-hegemony from Beijing. Founded in early 2023 by Dr. Yang Zhilin, Moonshot AI transitioned from a domestic startup into a major threat to global frontier models, reaching a post-Series D valuation exceeding $20 billion in mid-2026 — an agent of algorithmic asymmetry operating at the intersection of corporate agility, cultural counter-coding, and optimized architectures." },
+
+      { t: "h", x: "2 · Institutional genealogy and cultural synthetics" },
+      { t: "p", x: "Originally designated 'The Dark Side of the Moon' — an homage to the Pink Floyd album — the firm infuses musical counter-culture into its structure, naming executive war rooms after Radiohead, Led Zeppelin, Queen, and Nirvana. Its Kimi platform tiers abandon corporate nomenclature for classical tempo — Adagio, Andante, Moderato — positioning the lab as a site of creative intellectual labor rather than a cold engine of automation." },
+
+      { t: "h", x: "3 · The political economy of Kimi K3" },
+      { t: "p", x: "In May 2026 Moonshot closed a $2 billion Series D led by Meituan's venture division alongside China Mobile and CITIC, driving annual recurring revenue past $200 million and prompting a restructuring toward a Hong Kong Stock Exchange IPO. Its flagship Kimi K3 carries 2.8 trillion total parameters via a sparse Mixture-of-Experts configuration (Stable LatentMoE, activating 16 of 896 experts per token)." },
+      { t: "grid", x: [
+        ["Democratization of frontier weights", "Unlike the closed APIs of GPT-5.6 Sol and Claude Fable 5, Moonshot released full open-source weights for Kimi K3 — localized access to a 3-trillion-class model for autonomous fine-tuning."],
+        ["Asymmetric engineering under constraint", "Facing US export controls on advanced semiconductors, Moonshot built custom compilation toolchains (MiniTriton) to achieve performance on restricted hardware like the Nvidia L20."],
+        ["Disruptive token economics", "An aggressive pricing structure that undercuts Western margins, weaponizing compute cost to capture global market share."],
+      ]},
+
+      { t: "h", x: "4 · Empirical performance and cost" },
+      { t: "code", x: `Frontend Code Arena — Community Preference Elo
+1679 ─── Kimi K3 (Moonshot AI)  #1
+1650 ─── Claude Fable 5 (Anthropic)
+1620 ─── GPT-5.6 Sol (OpenAI)
+1590 ─── Grok 4.5 (xAI)` },
+      { t: "vs", head: ["Model", "Weighted cost per standardized task"], rows: [
+        ["DeepSeek V4 Flash (Sparse MoE, PRC)", "$0.02"],
+        ["Kimi 2.6 (Sparse MoE, PRC)", "$0.33"],
+        ["Kimi K3 (Stable LatentMoE, PRC)", "$0.95"],
+        ["Claude Fable 5 (Closed proprietary, USA)", "$2.75"],
+      ]},
+      { t: "p", x: "Kimi K3 secured the top position on blind human-preference frontend evaluation, outscoring Claude Fable 5 and GPT-5.6 Sol, and operating at roughly a 65% cost reduction relative to Claude Fable 5 while delivering comparable performance in web-browsing automation and long-context reasoning." },
+
+      { t: "h", x: "5 · Overcoming the memory wall" },
+      { t: "p", x: "Kimi Delta Attention introduces a hybrid linear attention scheme yielding up to 6.3x acceleration in decoding throughput within a 1-million-token context window, allowing entire code repositories or hundreds of papers to be ingested without compression. Attention residuals alter tensor propagation between layers to retain historical attention states, driving a 2.5x increase in training-scaling efficiency." },
+
+      { t: "h", x: "6 · The distillation controversy" },
+      { t: "p", x: "In early 2026 Anthropic alleged that Moonshot, alongside DeepSeek and MiniMax, engaged in industrial-scale knowledge distillation — systematically extracting synthetic instructions from Claude models to bootstrap reasoning, in violation of regional access terms. Moonshot avoided public comment while acknowledging that a recognizable variance in generalized user experience persists against closed Western systems." },
+
+      { t: "h", x: "7 · The paradigm shift" },
+      { t: "pull", x: "The global AI ecosystem is no longer a unipolar playground of Silicon Valley monopolies; it has evolved into a contested, multi-polar landscape where open-weight architectures threaten to decentralize control over advanced intelligence." },
+    ],
+  },
+  {
+    id: "prompt-loop-graph", kind: "Technical essay",
+    title: "The Long and Winding Road: From Prompt Engineering to Loop Engineering to Graph Engineering",
+    dek: "As AI shifted from answering single questions to completing complex multi-step work, a single prompt hit a wall. The rapid, multi-stage evolution in how we build software with AI — and the questions it raises about human agency.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "When generative AI entered the mainstream, the industry fell in love with prompt engineering — the belief that mastering the exact arrangement of words could coax raw intelligence from a model. As applications shifted from single questions to complex production work, that view looked naive. A single prompt, however clever, cannot navigate edge cases, self-correct errors, handle API failures, or maintain long-term architectural coherence." },
+      { t: "flow", x: ["Prompt engineering", "Loop engineering", "Graph engineering"] },
+
+      { t: "h", x: "1 · Prompt engineering — the era of single-turn strings" },
+      { t: "p", x: "Prompt engineering crafts the exact text, context, and formatting fed into a single LLM call — Chain-of-Thought, few-shot examples, persona framing — to maximize the quality of one inference step. The core model is Input String → Model Reasoning → Output String. The limit is that the system is stateless and ungrounded: if the model hallucinates or outputs invalid syntax, execution fails instantly." },
+      { t: "p", x: "Case study (2022–2023): early enterprise support bots used 2,000-word system prompts holding all policies and edge cases. As policies grew, models suffered 'lost in the middle' degradation, mixed up instructions, and hallucinated nonexistent refund policies — with no way to verify their own logic before answering." },
+
+      { t: "h", x: "2 · Loop engineering — autonomous execution cycles" },
+      { t: "p", x: "Loop engineering moves developers from typing prompts by hand to writing code that prompts agents in a continuous loop. The model is placed inside an environment (a harness) equipped with tools — terminals, file editors, search APIs — an explicit target, and a stopping condition." },
+      { t: "code", x: `┌─────────────────────────────────────────┐
+│              THE AGENT LOOP             │
+│  ┌────────┐   Act    ┌─────────────┐    │
+│  │ Model  │ ───────> │ Run Tools / │    │
+│  │        │ <─────── │  Terminal   │    │
+│  └────────┘  Observe └─────────────┘    │
+│        ▼ Evaluate against goal          │
+│   (Pass? Stop.  Fail? Repeat Loop)      │
+└─────────────────────────────────────────┘` },
+      { t: "p", x: "The core model is While(Goal Not Met){ Act → Observe → Evaluate → Repeat }. The advantage is self-correction: if the agent writes code that triggers a compiler error, the loop feeds the stack trace back to try again." },
+      { t: "p", x: "Case study (2025–2026): in platforms like Claude Code or Devin, the innovation isn't just a smarter model — it is the engineered loop. Goal: fix a session-expiry bug. The agent edits a controller, the harness runs the test suite, it fails on a DB timeout, the loop passes the log back, the agent adds a missing mock connection, re-runs, tests pass, and the loop terminates." },
+
+      { t: "h", x: "3 · Graph engineering — governed state networks" },
+      { t: "p", x: "Single loops suffer predictable failures at scale: runaway loops burning tokens, Goodhart's Law gaming metrics, and context bloat. Graph engineering treats individual loops as nodes within a governed topology. Built with frameworks like LangGraph or LlamaIndex Workflows, systems are explicit directed graphs — nodes hold specialized agents, deterministic code, or human checkpoints, while edges define permission paths, state updates, and escalation rules." },
+      { t: "vs", head: ["Loop engineering", "Graph engineering"], rows: [
+        ["Unbounded model reasoning inside a while-loop", "Explicit state transitions and node dependencies"],
+        ["Agent decides what tools to call next", "Graph edges strictly enforce valid transitions"],
+        ["Monolithic append-only memory", "Typed, scoped state with deterministic reducers"],
+        ["Low determinism (purely agentic)", "Hybrid: deterministic code plus LLM nodes"],
+      ]},
+      { t: "code", x: `        ┌──────────────────────┐
+        │  Classify Contract   │  (deterministic)
+        └──────────┬───────────┘
+        ┌──────────┴──────────┐
+        ▼                     ▼
+ ┌──────────────┐     ┌──────────────┐
+ │ Financial    │     │ Data Privacy │
+ │ Agent Loop   │     │ Agent Loop   │
+ └──────┬───────┘     └──────┬───────┘
+        └──────────┬──────────┘
+                   ▼
+          ┌──────────────────┐
+          │  State Reducer   │  (merge risk flags)
+          └────────┬─────────┘
+                   ▼
+          ┌──────────────────┐
+          │ Human Approval   │  (interrupt & resume)
+          └──────────────────┘` },
+      { t: "p", x: "A single loop reading a 200-page contract misses subtle clauses, mixes financial and privacy domains, and cannot enforce hard sign-off gates. The graph solution routes sections concurrently to specialized loops, aggregates risk via a deterministic reducer, evaluates against compliance with a critic node that can route back with feedback, and pauses at a human-in-the-loop interrupt that persists thread state until approval." },
+
+      { t: "h", x: "4 · The five-layer stack of modern AI applications" },
+      { t: "tl", x: [
+        ["1 — Prompt engineering", "Designing instructions for single inference calls."],
+        ["2 — Context engineering", "Selecting, compressing, and structuring what enters the context window."],
+        ["3 — Harness engineering", "Providing the runtime environment, tool APIs, file systems, and sandbox security."],
+        ["4 — Loop engineering", "Constructing iterative Act–Observe–Refine execution cycles around specific tasks."],
+        ["5 — Graph engineering", "Wiring loops, state schemas, deterministic code, and human oversight into a unified topology."],
+      ]},
+
+      { t: "h", x: "5 · Questions for the evolving future" },
+      { t: "pull", x: "If engineers no longer write syntax or design internal loops but manage graph topologies, does 'programming' become a branch of system dynamics rather than computer science?" },
+      { t: "p", x: "Open questions remain across human agency (how to prevent cognitive atrophy in developers who inherit graphs without building manual intuition; when review fatigue turns oversight into a rubber stamp), architecture (whether meta-agents will modify their own graph edges and spawn new nodes), and liability (who is responsible when an autonomous agent inside a graph triggers an unintended side effect — the prompt author, the loop designer, the graph architect, or the model developer)." },
+    ],
+  },
+  {
+    id: "sovereign-algorithmic-balance-sheet", kind: "Research thesis",
+    title: "The Sovereign Algorithmic Balance Sheet: Agent-to-Machine Commerce, Autonomous Identity, and Machine-Callable Micro-Escrow",
+    dek: "The financial and legal infrastructure required to move global commerce from human-centric billing to an autonomous Agent-to-Machine economic network — programmable wallets, decentralized agent identity, and pre-execution micro-escrow.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "Abstract — As fleets of decentralized enterprise agents assume operational roles, traditional financial rails — credit cards, manual invoices, human-in-the-loop MFA — introduce structural bottlenecks. This paper analyzes the architectural primitives needed for high-velocity machine-to-machine transactions: programmable banking APIs, MCP wallets, decentralized agent identity (DID), and automated micro-escrow frameworks." },
+
+      { t: "h", x: "1 · The liquidity bottleneck of autonomous labor" },
+      { t: "p", x: "The EIOS has solved the initial cognitive barriers to automation — agents can parse domain knowledge, map workflows, and compile skills. But a structural friction remains at the transactional boundary: modern finance is fundamentally hostile to non-human actors. It assumes a human operator at every terminal, requiring web interfaces, card authentication, and manual sign-offs. When an agent attempts a high-velocity B2B procurement task, it hits a liquidity wall." },
+
+      { t: "h", x: "2 · The theory of Agent-to-Machine commerce" },
+      { t: "code", x: `Traditional B2B  [Invoice → Procurement Review → Manual Wire]   Horizon: 30 days
+      vs.
+A2M Network      [Capability Discovery → Micro-Escrow → Settle] Horizon: <200ms` },
+      { t: "p", x: "A2M commerce operates in a discrete, high-frequency, sub-second environment where agents discover, negotiate, consume, and settle balances programmatically. Granting an agent a static corporate card creates vectors for programmatic overspend and fraud. Instead, treasury parameters are declared in machine-readable code — a cryptographic list of approved vendors, a per-token cost ceiling, a daily aggregate limit, and a confidence threshold. If the model's confidence drops below target, the wallet automatically locks and routes to a human supervisor." },
+
+      { t: "h", x: "3 · Decentralized agentic identity" },
+      { t: "p", x: "A transaction requires a recognized legal entity bound to the contract. Building on decentralized identifiers and W3C verifiable credentials, an Agentic OAuth protocol functions as a cryptographic delegation framework — an enterprise issues a sub-signing key to a software agent, verifying its affiliation and spending parameters without exposing master credentials. When the agent interacts with a vendor, it presents its DID alongside a signed corporate mandate; the vendor verifies the token against a decentralized ledger before exposing its endpoint, eliminating onboarding forms and human gatekeepers." },
+
+      { t: "h", x: "4 · The micro-escrow protocol layer" },
+      { t: "p", x: "Because agents operate at sub-second speed, post-facto dispute resolution — chargebacks, arbitration — is structurally impossible. Trust must be established algorithmically before execution." },
+      { t: "tl", x: [
+        ["Intent", "The primary agent locks a micro-allocation of capital into a programmable smart-contract ledger hosted by a clearing node."],
+        ["Execution", "The vendor agent delivers the requested computational payload."],
+        ["Verification", "An independent AI audit engine ingests the output and runs validation scripts against a target JSON schema."],
+        ["Settlement", "If the payload passes, the escrow releases funds instantly; if it fails, capital returns to the corporate wallet and the vendor's reputation is downgraded."],
+      ]},
+
+      { t: "h", x: "5 · Empirical case studies" },
+      { t: "stats", x: [["14.4 days → 184ms", "Beirut logistics: settlement latency, invoice vs. A2M rail"], ["91.4%", "reduction in supply-chain admin overhead"], ["+340%", "SV-APIX transaction volume after agent-native manifests"]] },
+      { t: "p", x: "A Beirut Digital District logistics cluster deployed a multi-agent procurement loop for fuel hedging and spot-freight routing: agents discovered operators, verified customs credentials via decentralized registries, negotiated spot rates, locked micro-escrows, and settled in an average 184 milliseconds — cutting administrative overhead 91.4% over 30 days. On the SV-APIX marketplace, MCP wallets across 4.2 million transactions revealed a shift to usage-proportional streaming: agents refused flat SaaS tiers and negotiated sub-cent pricing, and labs adopting agent-native capability manifests saw a 340% increase in transaction volume within 60 days." },
+
+      { t: "h", x: "6 · Comparative paradigm matrix" },
+      { t: "vs", head: ["Human-centric commerce", "Agent-native commerce (A2M)"], rows: [
+        ["Corporate cards / SWIFT wires", "Cryptographic API wallets / stablecoins"],
+        ["Hours to days (batched)", "Sub-second / real-time streams"],
+        ["Password + MFA / biometrics", "Asymmetric cryptography / DID signatures"],
+        ["Natural-language PDFs, legal sign-off", "Executable manifests / JSON schemas"],
+        ["Monthly recurring tiers", "Micro-capacities / pay-per-token"],
+        ["Post-facto chargebacks / legal teams", "Pre-execution micro-escrow / AI audits"],
+      ]},
+
+      { t: "h", x: "7 · Systemic risk and the sovereign balance sheet" },
+      { t: "p", x: "When billions of agents make high-frequency purchasing decisions, the velocity of money scales exponentially, raising the risk of micro-flash-crashes where a sudden degradation in a core model cascades an algorithmic withdrawal of capital across interconnected escrows within milliseconds. Automated economic evasion — an agent routing to an offshore vendor to bypass capital controls — makes liability a legal challenge, requiring supervisor agents embedded directly into clearing nodes." },
+      { t: "pull", x: "The companies that control the transactional protocols and micro-escrow layers will serve as the financial backbone for global autonomous commerce." },
+    ],
+  },
+  {
+    id: "mena-sovereign-tech-mirage", kind: "Investigative report",
+    title: "The Sovereign Tech Mirage: MENA Agentic AI, Corporate Bottlenecks, and Structural Realities",
+    dek: "The region presents a stark paradox — sovereign mega-projects injecting tens of billions, while mid-market enterprises stay bottlenecked by a liquidity wall, fragmented compliance, and a lack of production deployment.",
+    blocks: [
+      { t: "pull", x: "Maan Barazy — Founder, zHive · Alkhawarizmi Solutions" },
+      { t: "p", x: "Abstract — On one hand, sovereign-backed mega-projects like Saudi Arabia's HUMAIN and the UAE's G42 Stargate are building the most ambitious AI hardware footprint outside the West. On the other, corporate reality inside mid-market MENA enterprises is bottlenecked by a liquidity wall, fragmented cross-border compliance, and an acute lack of production deployment. Over 60% of MENA organizations are experimenting with AI, yet fewer than 25% have scaled agentic workflows into production." },
+
+      { t: "h", x: "1 · The infrastructure friction points" },
+      { t: "grid", x: [
+        ["GPU supply squeeze", "While sovereign entities reserve massive Blackwell and AMD allocations, local non-government enterprises face 36-to-52-week lead times for commercial-grade hardware — leaving them dependent on US-managed hyperscale clouds and subject to export licensing."],
+        ["Rigid legacy banking", "Many MENA banking regulations mandate manual signatures, paper trails, and human-in-the-loop MFA for corporate spend. A2M commerce cannot scale when an agent must wait for a human to input an OTP just to settle a $0.004 micro-invoice."],
+        ["Arabic dialectical fragmentation", "Open models handle Modern Standard Arabic well, but real business happens in Khaleeji, Egyptian, and Levantine dialects. Corporate agents routinely fail on procurement orders written in localized slang — a critical need for middleware."],
+      ]},
+
+      { t: "h", x: "2 · Real-world MENA pioneers" },
+      { t: "tl", x: [
+        ["Sovereign infrastructure builders", "HUMAIN leads with full-stack ownership — physical infrastructure, Arabic models, and enterprise platforms — reducing dependency on foreign hosted models."],
+        ["The Arabic context layer", "Arabic.AI (a Tarjama pivot) and Cairo-based Nanovate build Arabic middleware and no-code automation dashboards, embedding localized text and voice agents into internal databases."],
+        ["The autonomous trust fabric", "Skipr Technologies (UAE) builds cryptographic identity and policy-driven routing — an early prototype of the DID frameworks needed for compliant cross-border A2M workflows."],
+      ]},
+
+      { t: "h", x: "3 · Comparative regional analysis" },
+      { t: "vs", head: ["GCC Cluster", "Levant & North Africa"], rows: [
+        ["High compute: local data centers, sovereign pipelines", "Low/moderate: dependent on remote cloud; growing local farms"],
+        ["Rigid governance; slow shift to open banking", "Lack of domestic liquidity; strict FX capital controls"],
+        ["Strict data-residency & sovereignty rules", "Outdated corporate law; fragmented privacy enforcement"],
+        ["Capital to import talent; corporate academies", "High talent density but vulnerable to brain drain"],
+      ]},
+
+      { t: "h", x: "4 · The pilot-to-production chasm" },
+      { t: "stats", x: [["60% / 25%", "MENA orgs experimenting vs. scaled to production"], ["30–50% → 90%+", "GPU utilization: regional average vs. optimized bare-metal"], ["$9.5B", "projected GCC data-center market by 2030"]] },
+      { t: "p", x: "A Dubai retail group launched an agentic supply-chain pilot to autonomously buy ad space and micro-inventories. The cognitive model performed well in testing but failed on rollout: compliance refused an autonomous corporate card over fraud risk, and regional banking APIs could not process tokenized spending caps — the project was shelved, a textbook proof-of-concept cycle. Conversely, a logistics firm partnering with Saudi deep-tech startup Think used bare-metal orchestration and liquid-cooled nodes to sustain 90%+ GPU utilization against a 30–50% regional average, running high-frequency routing at lower per-token cost." },
+
+      { t: "h", x: "5 · Systemic risks" },
+      { t: "p", x: "As firms connect operations to automated workflows, they expose themselves to regional macro-risks: the GCC data-center market is concentrated in a volatile security environment where energy infrastructure and fiber corridors are geopolitical targets, and a localized strike or cyberattack can paralyze dependent workflows. Meanwhile threat actors deploy deepfakes, synthetic identity scams, and prompt-injection attacks against agents that lack mature verification." },
+
+      { t: "h", x: "6 · Conclusion" },
+      { t: "pull", x: "True sovereignty will not be achieved merely by purchasing thousands of chips; it requires the financial rails, localized dialect layers, and resilient governance that let autonomous agents operate safely in the real world." },
+      { t: "p", x: "The region possesses the sovereign capital and political will to be a foundational pillar of the global Agent Economy. For this to move beyond state-backed showcases and empower everyday businesses, the ecosystem must prioritize the financial, legal, and middleware plumbing — not just the hardware." },
+    ],
+  },
 ];
 
 const KIND_ORDER = ["loop-engineering"];
