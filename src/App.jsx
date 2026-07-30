@@ -1259,11 +1259,11 @@ function Home({ go }) {
     <main className="wrap">
       <section className="hero">
         <p className="eyebrow">{t("Ideation → implementation · MENA-first", "من الفكرة إلى التنفيذ · الشرق الأوسط أولاً")}</p>
-        <h1>{t("Run your whole startup like you've got a full team.", "أدِر شركتك الناشئة بالكامل وكأن لديك فريقًا متكاملًا.")}<br />{t("(You kind of do.)", "(ولديك فريق بالفعل.)")}</h1>
+        <h1>{t("Run your whole business like you've got a full team.", "أدِر عملك بالكامل وكأن لديك فريقًا متكاملًا.")}<br />{t("(You kind of do.)", "(ولديك فريق بالفعل.)")}</h1>
         <p className="lede">
           {t(
-            "A hive of specialist AI agents that learn your business and run your ops with you — no experience needed. Built for founders across Lebanon and the region.",
-            "خليّة من وكلاء الذكاء الاصطناعي المتخصصين يتعلّمون نشاطك ويديرون عملياتك معك — دون خبرة مسبقة. مبنيّة لروّاد الأعمال في لبنان والمنطقة."
+            "A hive of specialist AI agents that learn your business inside out — your reports, documents, and customer history — and turn it into clear answers and next steps, so you can move fast without a big team.",
+            "خليّة من وكلاء الذكاء الاصطناعي المتخصصين يتعلّمون نشاطك من الداخل — تقاريرك، مستنداتك، وسجلّ عملائك — ويحوّلونها إلى إجابات واضحة وخطوات تالية، لتتحرّك بسرعة دون فريق كبير."
           )}
         </p>
         <div className="row">
