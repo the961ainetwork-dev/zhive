@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Idea to Business — ZHIVE</title>
+<meta name="description" content="Five AI specialists take your startup idea from raw concept to an investor-ready brief. Built for founders across MENA.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1420;
+    --ink-raised:#161E2E;
+    --ink-line:#26314A;
+    --paper:#FFFFFF;
+    --paper-dim:#FFFFFF;
+    --muted:#FFFFFF;
+    --brass:#C8A24A;
+    --brass-soft:rgba(200,162,74,.14);
+    --green:#4FB3A0;
+    --red:#E0685E;
+    --display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+    --body:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{margin:0;padding:0;}
+
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--body);
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px;}
+
+  a{color:var(--brass);}
+
+  /* ---------- masthead ---------- */
+
+  .masthead{padding:34px 0 0;}
+
+  .backlink{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    text-decoration:none;
+  }
+  .backlink:hover{color:var(--brass);}
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin:44px 0 14px;
+  }
+
+  h1{
+    font-family:var(--display);
+    font-weight:800;
+    font-size:clamp(38px,6.4vw,74px);
+    line-height:.98;
+    letter-spacing:-.025em;
+    margin:0 0 20px;
+  }
+
+  .standfirst{
+    max-width:56ch;
+    color:var(--paper-dim);
+    font-size:17px;
+    margin:0 0 40px;
+  }
+
+  /* ---------- brief form ---------- */
+
+  .brief{
+    background:var(--ink-raised);
+    border:1px solid var(--ink-line);
+    border-radius:4px;
+    padding:26px;
+    margin-bottom:56px;
+  }
+
+  .field{margin-bottom:20px;}
+  .field:last-of-type{margin-bottom:22px;}
+
+  .field label{
+    display:block;
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+
+  .field textarea,
+  .field input{
+    width:100%;
+    background:var(--ink);
+    border:1px solid var(--ink-line);
+    border-radius:3px;
+    color:var(--paper);
+    font-family:var(--body);
+    font-size:16px;
+    line-height:1.55;
+    padding:13px 14px;
+    resize:vertical;
+  }
+
+  .field textarea{min-height:132px;}
+
+  .field textarea:focus,
+  .field input:focus{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+    border-color:transparent;
+  }
+
+  .field textarea::placeholder,
+  .field input::placeholder{color:#93A0B4;}
+
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+  .controls{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+
+  button{
+    font-family:var(--body);
+    font-size:15px;
+    font-weight:600;
+    border-radius:3px;
+    cursor:pointer;
+    padding:12px 26px;
+    border:1px solid transparent;
+    transition:background .15s ease,color .15s ease;
+  }
+  button:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+
+  .btn-run{background:var(--brass);color:#1A1408;}
+  .btn-run:not(:disabled):hover{background:#D9B45C;}
+
+  .btn-ghost{background:transparent;color:var(--paper-dim);border-color:var(--ink-line);}
+  .btn-ghost:not(:disabled):hover{color:var(--paper);border-color:var(--muted);}
+
+  .status{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .status.err{color:var(--red);}
+
+  /* ---------- stage: spine + dossier ---------- */
+
+  .stage{
+    display:grid;
+    grid-template-columns:238px 1fr;
+    gap:44px;
+    align-items:start;
+    padding-bottom:90px;
+  }
+
+  .stage[hidden]{display:none;}
+
+  .spine{position:sticky;top:28px;}
+
+  .spine-title{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:20px;
+  }
+
+  .node{
+    position:relative;
+    padding:0 0 26px 34px;
+  }
+  .node:last-child{padding-bottom:0;}
+
+  /* connector line */
+  .node::before{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:19px;
+    bottom:-1px;
+    width:1px;
+    background:var(--ink-line);
+  }
+  .node:last-child::before{display:none;}
+
+  .node::after{
+    content:"";
+    position:absolute;
+    left:8px;
+    top:19px;
+    width:1px;
+    height:0;
+    background:var(--brass);
+    transition:height .5s ease;
+  }
+  .node.done::after{height:calc(100% - 19px);}
+  .node:last-child::after{display:none;}
+
+  .dot{
+    position:absolute;
+    left:2px;
+    top:6px;
+    width:13px;
+    height:13px;
+    border-radius:50%;
+    border:1px solid var(--ink-line);
+    background:var(--ink);
+  }
+
+  .node.active .dot{
+    border-color:var(--brass);
+    background:var(--brass-soft);
+    animation:pulse 1.3s ease-in-out infinite;
+  }
+  .node.done .dot{border-color:var(--brass);background:var(--brass);}
+  .node.failed .dot{border-color:var(--red);background:var(--red);}
+
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(200,162,74,.45);}
+    50%{box-shadow:0 0 0 6px rgba(200,162,74,0);}
+  }
+
+  .node-num{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:.06em;
+  }
+  .node.done .node-num,
+  .node.active .node-num{color:var(--brass);}
+
+  .node-name{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:16.5px;
+    letter-spacing:-.01em;
+    line-height:1.25;
+    color:var(--paper-dim);
+    margin-top:1px;
+  }
+  .node.active .node-name,
+  .node.done .node-name{color:var(--paper);}
+
+  .node-note{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+    margin-top:3px;
+    min-height:14px;
+  }
+
+  /* ---------- dossier ---------- */
+
+  .dossier{min-width:0;}
+
+  .empty{
+    border:1px dashed var(--ink-line);
+    border-radius:4px;
+    padding:46px 30px;
+    color:var(--muted);
+    font-size:15px;
+  }
+
+  .card{
+    background:var(--paper);
+    color:#1A1F28;
+    border-radius:4px;
+    padding:30px 32px;
+    margin-bottom:22px;
+    animation:rise .4s ease both;
+  }
+
+  @keyframes rise{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:none;}
+  }
+
+  .card-head{
+    display:flex;
+    align-items:baseline;
+    gap:12px;
+    border-bottom:1px solid #D3D6D0;
+    padding-bottom:13px;
+    margin-bottom:19px;
+  }
+
+  .card-num{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:#8A9068;
+    color:#7E8492;
+    letter-spacing:.06em;
+  }
+
+  .card-title{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:-.02em;
+    margin:0;
+    flex:1;
+  }
+
+  .card-body{font-size:15.4px;line-height:1.68;}
+  .card-body h3{
+    font-family:var(--display);
+    font-weight:700;
+    font-size:16.5px;
+    letter-spacing:-.005em;
+    margin:22px 0 7px;
+  }
+  .card-body h3:first-child{margin-top:0;}
+  .card-body p{margin:0 0 12px;}
+  .card-body ul{margin:0 0 13px;padding-left:19px;}
+  .card-body li{margin-bottom:5px;}
+  .card-body strong{font-weight:600;}
+  .card-body table{border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14.2px;}
+  .card-body th,.card-body td{border:1px solid #D3D6D0;padding:7px 10px;text-align:left;}
+  .card-body th{background:#E2E3DD;font-weight:600;}
+
+  .card.thinking{
+    background:var(--ink-raised);
+    color:var(--muted);
+    border:1px solid var(--ink-line);
+    font-family:var(--mono);
+    font-size:13px;
+    padding:22px 26px;
+  }
+
+  .card.error{
+    background:var(--ink-raised);
+    border:1px solid var(--red);
+    color:var(--paper);
+  }
+  .card.error .card-title{color:var(--red);}
+  .card.error .detail{
+    font-family:var(--mono);
+    font-size:12.5px;
+    color:var(--paper-dim);
+    background:var(--ink);
+    border-radius:3px;
+    padding:12px 14px;
+    margin:14px 0 18px;
+    overflow-wrap:anywhere;
+  }
+
+  .dossier-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:6px;
+  }
+
+  .dots::after{
+    content:"";
+    animation:dots 1.4s steps(4,end) infinite;
+  }
+  @keyframes dots{
+    0%{content:"";}
+    25%{content:".";}
+    50%{content:"..";}
+    75%{content:"...";}
+  }
+
+  footer{
+    border-top:1px solid var(--ink-line);
+    padding:26px 0 40px;
+    font-family:var(--mono);
+    font-size:11.5px;
+    letter-spacing:.06em;
+    color:var(--muted);
+    text-transform:uppercase;
+  }
+
+  .sr-only{
+    position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+  }
+
+  @media (max-width:900px){
+    .stage{grid-template-columns:1fr;gap:30px;}
+    .spine{position:static;}
+    .row{grid-template-columns:1fr;}
+    .card{padding:24px 21px;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <a class="backlink" href="/">&larr; ZHIVE</a>
+    <p class="eyebrow">Multi-agent applied startups</p>
+    <h1>Idea to Business</h1>
+    <p class="standfirst">
+      Five specialists work your idea in sequence — each one reads what came before.
+      You start with a sentence. You finish with a brief you can put in front of an investor.
+    </p>
+  </header>
+
+  <section class="brief" aria-label="Your startup brief">
+    <div class="field">
+      <label for="idea">The idea</label>
+      <textarea id="idea" placeholder="A subscription service that delivers fresh produce from Lebanese farms directly to restaurants in Beirut, cutting out the wholesale market."></textarea>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="market">Primary market</label>
+        <input id="market" type="text" placeholder="Lebanon, or GCC, or MENA-wide">
+      </div>
+      <div class="field">
+        <label for="stage">Where you are now</label>
+        <input id="stage" type="text" placeholder="Just an idea / early prototype / first customers">
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn-run" id="runBtn" type="button">Run the team</button>
+      <button class="btn-ghost" id="stopBtn" type="button" hidden>Stop</button>
+      <span class="status" id="status" role="status" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="stage" id="stage" hidden>
+    <nav class="spine" aria-label="Agent progress">
+      <p class="spine-title">The team</p>
+      <div id="nodes"></div>
+    </nav>
+
+    <div class="dossier">
+      <div id="cards"></div>
+      <div class="dossier-actions" id="actions" hidden>
+        <button class="btn-ghost" id="copyBtn" type="button">Copy brief</button>
+        <button class="btn-ghost" id="dlBtn" type="button">Download .md</button>
+        <button class="btn-ghost" id="resetBtn" type="button">Start over</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>ZHIVE — AI agents for founders across MENA</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API = "/api/claude";
+
+  var AGENTS = [
+    {
+      key: "ideation",
+      name: "Ideation",
+      note: "Sharpens and scores the concept",
+      maxTokens: 1300,
+      build: function (b) {
+        return "You are the Ideation Agent on a founding team advising an entrepreneur in the MENA region.\n\n" +
+          brief(b) +
+          "\nSharpen this into a concrete venture. Write these sections, using markdown headings (###):\n\n" +
+          "### The idea, sharpened\nOne tight paragraph restating the venture with the vagueness removed. Name the customer, the job it does, and how it makes money.\n\n" +
+          "### Three variants worth considering\nThree distinct directions this could take. For each: a short name, one sentence on what changes, and who it serves.\n\n" +
+          "### Scored\nA markdown table scoring each variant 1-5 on: Market pull, Speed to first revenue, Defensibility, Fit for " + (b.market || "the MENA region") + ". Add a Total column.\n\n" +
+          "### Recommendation\nName the variant you'd build first and give the single strongest reason. Be decisive.\n\n" +
+          "Be specific and concrete. No filler, no generic startup advice.";
+      }
+    },
+    {
+      key: "research",
+      name: "Market Research",
+      note: "Demand and competitors",
+      maxTokens: 1700,
+      build: function (b, prior) {
+        return "You are the Market Research Agent on a founding team advising an entrepreneur in the MENA region.\n\n" +
+          brief(b) + prior +
+          "\nAnalyse the recommended variant. Sections with ### headings:\n\n" +
+          "### Who actually buys this\nThe specific buyer. Their situation, what they use today, what it costs them.\n\n" +
+          "### Demand signals\nWhat evidence suggests this demand is real, and what would disprove it. Be honest about what you cannot verify.\n\n" +
+          "### The competitive picture\nWho serves this need today in " + (b.market || "the region") + " — named companies where you can, plus the informal or manual alternatives people actually use. A markdown table: Competitor, What they do well, Where they leave a gap.\n\n" +
+          "### Market realities in " + (b.market || "MENA") + "\nRegulation, payments, logistics, language, trust, or cultural factors that materially change how this business works here. This section matters most — be concrete about this region, not generic.\n\n" +
+          "### The three riskiest assumptions\nRanked. For each, name the cheapest test that would settle it in under two weeks.\n\n" +
+          "You have no live web access, so mark anything uncertain as an assumption to verify rather than stating it as fact.";
+      }
+    },
+    {
+      key: "strategy",
+      name: "Strategy",
+      note: "Positioning and risk",
+      maxTokens: 1500,
+      build: function (b, prior) {
+        return "You are the Strategy Agent on a founding team advising an entrepreneur in the MENA region.\n\n" +
+          brief(b) + prior +
+          "\nSet the strategy. Sections with ### headings:\n\n" +
+          "### Positioning\nOne sentence, in the founder's own voice, that a customer would repeat back accurately.\n\n" +
+          "### The wedge\nThe narrow first market to win completely before expanding. Say why this one, and what it opens up next.\n\n" +
+          "### Why this holds\nWhat stops a competitor copying this in six months. If the honest answer is 'nothing yet', say so and name what would have to be built.\n\n" +
+          "### First 90 days\nA markdown table: Weeks, Focus, What proves it worked. Milestones must be observable, not activities.\n\n" +
+          "### What could kill this\nThe three most serious risks, each with a mitigation that costs little. Include at least one risk specific to operating in " + (b.market || "MENA") + ".\n\n" +
+          "Take positions. A strategy that hedges everything is not a strategy.";
+      }
+    },
+    {
+      key: "financial",
+      name: "Financial Model",
+      note: "Unit economics and revenue",
+      maxTokens: 1600,
+      build: function (b, prior) {
+        return "You are the Financial Model Agent on a founding team advising an entrepreneur in the MENA region.\n\n" +
+          brief(b) + prior +
+          "\nBuild the numbers. State every assumption openly — these are illustrative, not forecasts. Sections with ### headings:\n\n" +
+          "### Revenue model\nHow money is charged, and why that structure fits this customer.\n\n" +
+          "### Unit economics\nOne unit defined clearly, then a markdown table: Line item, Amount, Assumption behind it. Include price, direct cost, gross margin, cost to acquire one customer, expected lifetime value. Use USD unless a local currency is clearly more natural for " + (b.market || "this market") + ".\n\n" +
+          "### Getting to breakeven\nFixed monthly costs for a small team, the number of customers needed to cover them, and roughly how long that takes at a realistic growth rate.\n\n" +
+          "### Three-year shape\nA markdown table: Year, Customers, Revenue, Gross margin. Keep growth defensible, not hockey-stick.\n\n" +
+          "### The numbers that decide it\nThe two or three variables the whole model hinges on, and what happens if each is 30% worse than assumed.\n\n" +
+          "Round numbers. Precision you have not earned reads as false confidence.";
+      }
+    },
+    {
+      key: "documentation",
+      name: "Documentation",
+      note: "Investor-ready brief",
+      maxTokens: 2000,
+      build: function (b, prior) {
+        return "You are the Documentation Agent on a founding team advising an entrepreneur in the MENA region.\n\n" +
+          brief(b) + prior +
+          "\nWrite the investor brief itself — not a summary of the work above, but the finished document a founder sends to an investor. Sections with ### headings:\n\n" +
+          "### One-line pitch\n### The problem\n### The solution\n### Market opportunity\n### How it makes money\n### Why now\n### Why this wins\n### The plan\n### What we're asking for\nA sensible first raise for this stage in " + (b.market || "the region") + ", what it buys, and what milestone it reaches.\n\n" +
+          "### Open questions\nWhat an investor will press on that is not yet answered. Ending on honest gaps builds more credibility than pretending there are none.\n\n" +
+          "Write in the founder's voice — plain, confident, specific. Every section tight enough to read aloud. No hype words.";
+      }
+    }
+  ];
+
+  function brief(b) {
+    var s = "THE IDEA: " + b.idea + "\n";
+    if (b.market) s += "PRIMARY MARKET: " + b.market + "\n";
+    if (b.stage) s += "CURRENT STAGE: " + b.stage + "\n";
+    return s;
+  }
+
+  // ---------- dom ----------
+
+  var $ = function (id) { return document.getElementById(id); };
+  var ideaEl = $("idea"), marketEl = $("market"), stageInputEl = $("stage");
+  var runBtn = $("runBtn"), stopBtn = $("stopBtn"), statusEl = $("status");
+  var stageEl = $("stage"), nodesEl = $("nodes"), cardsEl = $("cards"), actionsEl = $("actions");
+  var copyBtn = $("copyBtn"), dlBtn = $("dlBtn"), resetBtn = $("resetBtn");
+
+  var controller = null;
+  var results = [];
+  var running = false;
+
+  // ---------- helpers ----------
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function pad(n) { return n < 10 ? "0" + n : String(n); }
+
+  function setStatus(msg, isErr) {
+    statusEl.textContent = msg || "";
+    statusEl.className = isErr ? "status err" : "status";
+  }
+
+  // minimal markdown -> html. escapes first, so no injection path.
+  function render(md) {
+    var lines = esc(md).replace(/\r/g, "").split("\n");
+    var out = [], list = null, table = null;
+
+    function closeList() { if (list) { out.push("</ul>"); list = null; } }
+    function closeTable() {
+      if (table) {
+        var html = "<table>";
+        for (var i = 0; i < table.length; i++) {
+          if (i === 1 && /^[\s|:-]+$/.test(table[i].raw)) continue;
+          var tag = i === 0 ? "th" : "td";
+          html += "<tr>";
+          for (var c = 0; c < table[i].cells.length; c++) {
+            html += "<" + tag + ">" + inline(table[i].cells[c]) + "</" + tag + ">";
+          }
+          html += "</tr>";
+        }
+        out.push(html + "</table>");
+        table = null;
+      }
+    }
+
+    for (var i = 0; i < lines.length; i++) {
+      var ln = lines[i], t = ln.trim();
+
+      if (t.indexOf("|") === 0 || (t.indexOf("|") > -1 && t.lastIndexOf("|") === t.length - 1 && t.length > 2)) {
+        closeList();
+        var cells = t.replace(/^\|/, "").replace(/\|$/, "").split("|").map(function (x) { return x.trim(); });
+        if (!table) table = [];
+        table.push({ cells: cells, raw: t });
+        continue;
+      }
+      closeTable();
+
+      if (!t) { closeList(); continue; }
+
+      var h = t.match(/^#{2,4}\s+(.*)$/);
+      if (h) { closeList(); out.push("<h3>" + inline(h[1]) + "</h3>"); continue; }
+
+      var li = t.match(/^(?:[-*]|\d+\.)\s+(.*)$/);
+      if (li) {
+        if (!list) { out.push("<ul>"); list = true; }
+        out.push("<li>" + inline(li[1]) + "</li>");
+        continue;
+      }
+
+      closeList();
+      out.push("<p>" + inline(t) + "</p>");
+    }
+    closeList();
+    closeTable();
+    return out.join("");
+  }
+
+  function inline(s) {
+    return s
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*]+)\*/g, "$1<em>$2</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+  }
+
+  // ---------- spine ----------
+
+  function buildSpine() {
+    nodesEl.innerHTML = "";
+    AGENTS.forEach(function (a, i) {
+      var el = document.createElement("div");
+      el.className = "node";
+      el.id = "node-" + a.key;
+      el.innerHTML =
+        '<span class="dot" aria-hidden="true"></span>' +
+        '<span class="node-num">' + pad(i + 1) + '</span>' +
+        '<div class="node-name">' + esc(a.name) + '</div>' +
+        '<div class="node-note">' + esc(a.note) + '</div>';
+      nodesEl.appendChild(el);
+    });
+  }
+
+  function markNode(key, state, note) {
+    var el = $("node-" + key);
+    if (!el) return;
+    el.className = "node" + (state ? " " + state : "");
+    if (note !== undefined) {
+      var n = el.querySelector(".node-note");
+      if (n) n.textContent = note;
+    }
+  }
+
+  // ---------- api ----------
+
+  function callClaude(prompt, maxTokens, signal) {
+    return fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: prompt, maxTokens: maxTokens }),
+      signal: signal
+    }).then(function (r) {
+      return r.text().then(function (raw) {
+        var data = null;
+        try { data = JSON.parse(raw); } catch (e) { data = null; }
+        if (!r.ok) {
+          throw new Error((data && data.error) ? data.error : ("Server returned " + r.status + ". " + raw.slice(0, 300)));
+        }
+        if (!data) throw new Error("Could not read the server response.");
+        if (data.error) throw new Error(data.error);
+        if (!data.text) throw new Error("The server replied but the response was empty.");
+        return data.text;
+      });
+    });
+  }
+
+  // ---------- cards ----------
+
+  function thinkingCard(agent, idx) {
+    var el = document.createElement("div");
+    el.className = "card thinking";
+    el.id = "card-" + agent.key;
+    el.innerHTML = pad(idx + 1) + " &middot; " + esc(agent.name) + ' <span class="dots"></span>';
+    cardsEl.appendChild(el);
+    return el;
+  }
+
+  function fillCard(el, agent, idx, text) {
+    el.className = "card";
+    el.innerHTML =
+      '<div class="card-head">' +
+        '<span class="card-num">' + pad(idx + 1) + '</span>' +
+        '<h2 class="card-title">' + esc(agent.name) + '</h2>' +
+      '</div>' +
+      '<div class="card-body">' + render(text) + '</div>';
+  }
+
+  function errorCard(el, agent, idx, message) {
+    el.className = "card error";
+    el.innerHTML =
+      '<div class="card-head">' +
+        '<span class="card-num">' + pad(idx + 1) + '</span>' +
+        '<h2 class="card-title">' + esc(agent.name) + ' stopped</h2>' +
+      '</div>' +
+      '<div class="detail">' + esc(message) + '</div>' +
+      '<button class="btn-ghost" type="button" id="retryBtn">Retry from here</button>';
+    var rb = $("retryBtn");
+    if (rb) rb.addEventListener("click", function () { start(idx); });
+  }
+
+  // ---------- run ----------
+
+  function collectBrief() {
+    return {
+      idea: ideaEl.value.trim(),
+      market: marketEl.value.trim(),
+      stage: stageInputEl.value.trim()
+    };
+  }
+
+  function priorContext(upTo) {
+    if (!upTo) return "";
+    var s = "\nWORK ALREADY DONE BY THE TEAM — build on this, do not repeat it:\n\n";
+    for (var i = 0; i < upTo; i++) {
+      if (!results[i]) continue;
+      s += "--- " + AGENTS[i].name.toUpperCase() + " ---\n" + results[i] + "\n\n";
+    }
+    return s;
+  }
+
+  function start(fromIdx) {
+    var b = collectBrief();
+    if (!b.idea) {
+      setStatus("Add your idea first.", true);
+      ideaEl.focus();
+      return;
+    }
+
+    fromIdx = fromIdx || 0;
+    running = true;
+    controller = new AbortController();
+
+    runBtn.disabled = true;
+    stopBtn.hidden = false;
+    actionsEl.hidden = true;
+    stageEl.hidden = false;
+
+    if (fromIdx === 0) {
+      results = [];
+      buildSpine();
+      cardsEl.innerHTML = "";
+    } else {
+      var stale = $("card-" + AGENTS[fromIdx].key);
+      if (stale) stale.remove();
+    }
+
+    step(fromIdx, b);
+  }
+
+  function step(i, b) {
+    if (!running) return;
+
+    if (i >= AGENTS.length) {
+      running = false;
+      runBtn.disabled = false;
+      stopBtn.hidden = true;
+      actionsEl.hidden = false;
+      setStatus("Done. Five of five.");
+      return;
+    }
+
+    var agent = AGENTS[i];
+    setStatus("Running " + agent.name + " — " + (i + 1) + " of " + AGENTS.length + "\u2026");
+    markNode(agent.key, "active", "Working\u2026");
+
+    var card = thinkingCard(agent, i);
+    var prompt = agent.build(b, priorContext(i));
+
+    callClaude(prompt, agent.maxTokens, controller.signal)
+      .then(function (text) {
+        if (!running) return;
+        results[i] = text;
+        markNode(agent.key, "done", agent.note);
+        fillCard(card, agent, i, text);
+        step(i + 1, b);
+      })
+      .catch(function (err) {
+        if (err && err.name === "AbortError") return;
+        running = false;
+        runBtn.disabled = false;
+        stopBtn.hidden = true;
+        markNode(agent.key, "failed", "Stopped");
+        errorCard(card, agent, i, err && err.message ? err.message : "Unknown error.");
+        setStatus("Stopped at " + agent.name + ".", true);
+      });
+  }
+
+  function stop() {
+    running = false;
+    if (controller) controller.abort();
+    runBtn.disabled = false;
+    stopBtn.hidden = true;
+    setStatus("Stopped.");
+    var t = cardsEl.querySelector(".card.thinking");
+    if (t) t.remove();
+    if (results.length) actionsEl.hidden = false;
+  }
+
+  // ---------- output ----------
+
+  function asMarkdown() {
+    var b = collectBrief();
+    var out = "# Idea to Business — ZHIVE\n\n**Idea:** " + b.idea + "\n";
+    if (b.market) out += "**Market:** " + b.market + "\n";
+    if (b.stage) out += "**Stage:** " + b.stage + "\n";
+    out += "\n---\n\n";
+    for (var i = 0; i < AGENTS.length; i++) {
+      if (!results[i]) continue;
+      out += "## " + pad(i + 1) + " — " + AGENTS[i].name + "\n\n" + results[i] + "\n\n---\n\n";
+    }
+    return out;
+  }
+
+  copyBtn.addEventListener("click", function () {
+    var text = asMarkdown();
+    var done = function () {
+      copyBtn.textContent = "Copied";
+      setTimeout(function () { copyBtn.textContent = "Copy brief"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { setStatus("Could not copy. Use Download instead.", true); });
+    } else {
+      setStatus("Copying is not supported in this browser. Use Download instead.", true);
+    }
+  });
+
+  dlBtn.addEventListener("click", function () {
+    var blob = new Blob([asMarkdown()], { type: "text/markdown;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "idea-to-business.md";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  });
+
+  resetBtn.addEventListener("click", function () {
+    results = [];
+    cardsEl.innerHTML = "";
+    stageEl.hidden = true;
+    actionsEl.hidden = true;
+    setStatus("");
+    ideaEl.focus();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  runBtn.addEventListener("click", function () { start(0); });
+  stopBtn.addEventListener("click", stop);
+
+  ideaEl.addEventListener("keydown", function (e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); start(0); }
+  });
+})();
+</script>
+</body>
+</html>
