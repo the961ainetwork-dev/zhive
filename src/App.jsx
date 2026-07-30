@@ -767,6 +767,7 @@ export default function ZhiveApp() {
         </div>
       )}
       {route.view === "home" && <Home go={go} />}
+      {route.view === "services" && <ServicesPage go={go} />}
       {route.view === "about" && <AboutPage go={go} />}
       {route.view === "knowledge" && <KnowledgePage go={go} />}
       {route.view === "article" && <ArticlePage id={route.agentId} go={go} />}
@@ -1227,22 +1228,20 @@ function Header({ go, session, cart, logout, lang, setLang }) {
         <span className="hex">z</span> <span className="brand-name">ZHIVE.XYZ</span>
       </button>
       <nav className="nav">
-        <button className="link" onClick={() => go("home")}>{t("Hive", "الخلية")}</button>
-        <button className="link" onClick={() => go("directory")}>{t("Directory", "الدليل")}</button>
-        <button className="link" onClick={() => go("method")}>{t("Method", "المنهجية")}</button>
-        <button className="link" onClick={() => go("pipelines")}>{t("Pipelines", "خطوط الوكلاء")}</button>
-        <button className="link" onClick={() => go("lab")}>{t("Readiness Lab", "مختبر الجاهزية")}</button>
-        <button className="link" onClick={() => go("copilot")}>{t("Copilot", "مساعد المؤسس")}</button>
-        <button className="link" onClick={() => go("brain")}>{t("Brain", "الدماغ")}</button>
-        <button className="link" onClick={() => go("about")}>{t("About", "من نحن")}</button>
-        <button className="link" onClick={() => go("knowledge")}>{t("Knowledge", "المعرفة")}</button>
-        <button className="link" onClick={() => go("cart")}>{t("Cart", "السلة")}{cart.length > 0 ? ` (${cart.length})` : ""}</button>
+        <button className="link" data-tip={t("Home — the whole hive", "الرئيسية — الخلية كاملة")} onClick={() => go("home")}>{t("Hive", "الخلية")}</button>
+        <button className="link" data-tip={t("Every tool we offer, explained", "كل أدواتنا، مشروحة")} onClick={() => go("services")}>{t("Services", "الخدمات")}</button>
+        <button className="link" data-tip={t("Rent one specialist agent by the month", "استأجر وكيلًا متخصصًا شهريًا")} onClick={() => go("directory")}>{t("Directory", "الدليل")}</button>
+        <button className="link" data-tip={t("Teach zhive your business once; every agent remembers", "علّم zhive نشاطك مرة؛ فيتذكّره كل وكيل")} onClick={() => go("brain")}>{t("Brain", "الدماغ")}</button>
+        <button className="link" data-tip={t("De-risk entering a new market before you spend", "قلّل مخاطر دخول سوق جديد قبل أن تنفق")} onClick={() => go("lab")}>{t("Readiness Lab", "مختبر الجاهزية")}</button>
+        <button className="link" data-tip={t("Guides and research for MENA founders", "أدلّة وأبحاث لروّاد أعمال المنطقة")} onClick={() => go("knowledge")}>{t("Working papers", "أوراق عمل")}</button>
+        <button className="link" data-tip={t("Who we are and why zhive exists", "من نحن ولماذا وُجدت zhive")} onClick={() => go("about")}>{t("About", "من نحن")}</button>
+        <button className="link" data-tip={t("Your selected agents", "الوكلاء الذين اخترتهم")} onClick={() => go("cart")}>{t("Cart", "السلة")}{cart.length > 0 ? ` (${cart.length})` : ""}</button>
         <button className="link" onClick={() => setLang(lang === "ar" ? "en" : "ar")} aria-label="Switch language" style={{ fontWeight: 700 }}>
           {lang === "ar" ? "EN" : "عربي"}
         </button>
         {session ? (
           <>
-            <button className="link" onClick={() => go("workspace")}>{t("Workspace", "مساحة العمل")}</button>
+            <button className="link" data-tip={t("Run your agents and see results", "شغّل وكلاءك وشاهد النتائج")} onClick={() => go("workspace")}>{t("Workspace", "مساحة العمل")}</button>
             <button className="link dim" onClick={logout}>{t("Log out", "خروج")}</button>
           </>
         ) : (
@@ -1250,6 +1249,124 @@ function Header({ go, session, cart, logout, lang, setLang }) {
         )}
       </nav>
     </header>
+  );
+}
+
+// ════════ SERVICES ════════
+// Every product/tool zhive offers, grouped: flagship products first, then the rentable directory.
+const SERVICES = [
+  {
+    name: ["Business Brain", "دماغ الأعمال"],
+    tag: ["Your company's memory", "ذاكرة شركتك"],
+    desc: [
+      "Tell zhive about your business once — products, prices, customers, how you work. It remembers, so every agent you use afterwards already knows your company and gets sharper over time. Set this up first; everything else works better.",
+      "أخبر zhive عن نشاطك مرة واحدة — المنتجات، الأسعار، العملاء، وطريقة عملك. سيتذكّرها، فيصبح كل وكيل تستخدمه لاحقًا عارفًا بشركتك ويزداد دقّة مع الوقت. جهّز هذا أولًا؛ وكل ما تبقّى يعمل بشكل أفضل."
+    ],
+    kind: "route", to: "brain", cta: ["Set up your Brain →", "جهّز دماغك ←"]
+  },
+  {
+    name: ["Idea to Business", "من الفكرة إلى الشركة"],
+    tag: ["From a sentence to an investor brief", "من جملة إلى ملخّص للمستثمرين"],
+    desc: [
+      "Type your idea in one sentence. Five AI specialists — ideation, market research, strategy, financials and documentation — work it in sequence and hand you an investor-ready brief. The fastest way to a first business plan.",
+      "اكتب فكرتك في جملة واحدة. خمسة وكلاء متخصصين — الفكرة، بحث السوق، الاستراتيجية، المالية، والتوثيق — يعملون عليها بالتتابع ويسلّمونك ملخّصًا جاهزًا للمستثمرين. أسرع طريق إلى أول خطة عمل."
+    ],
+    kind: "link", to: "/ideatobusiness.html", cta: ["Try Idea to Business →", "جرّب من الفكرة إلى الشركة ←"]
+  },
+  {
+    name: ["Readiness Lab", "مختبر الجاهزية"],
+    tag: ["De-risk your next market", "قلّل مخاطر سوقك القادم"],
+    desc: [
+      "Before you spend on entering Saudi, the UAE, Egypt or Lebanon, test your product against that market's laws, regulators and competitors. Deep agents with live web search map the license path, red flags and the questions to bring your lawyer. Research and orientation — not legal advice.",
+      "قبل أن تنفق على دخول السعودية أو الإمارات أو مصر أو لبنان، اختبر منتجك في مواجهة قوانين ذلك السوق وجهاته التنظيمية ومنافسيه. وكلاء متعمّقون ببحث حيّ يرسمون مسار الترخيص، نقاط الخطر، والأسئلة التي تحملها إلى محاميك. بحث وتوجيه — وليس استشارة قانونية."
+    ],
+    kind: "route", to: "lab", cta: ["Open the Readiness Lab →", "افتح مختبر الجاهزية ←"]
+  },
+  {
+    name: ["Copilot", "مساعد المؤسس"],
+    tag: ["An always-on founder's assistant", "مساعد مؤسس دائم الحضور"],
+    desc: [
+      "A conversational assistant that drafts, summarizes and answers day-to-day founder questions — from a quick email to a first-pass plan — in English or Arabic.",
+      "مساعد محادثة يصيغ ويلخّص ويجيب عن أسئلة المؤسس اليومية — من بريد سريع إلى مسودّة خطة — بالعربية أو الإنجليزية."
+    ],
+    kind: "route", to: "copilot", cta: ["Open Copilot →", "افتح المساعد ←"]
+  },
+  {
+    name: ["Pipelines", "خطوط الوكلاء"],
+    tag: ["Chain agents into automated workflows", "اربط الوكلاء في مسارات آلية"],
+    desc: [
+      "Chain several agents so each builds on the last, then put the pipeline on a daily or weekly schedule so it runs while you sleep. Right for repeatable work: reporting, content, research digests.",
+      "اربط عدّة وكلاء ليبني كل واحد على عمل سابقه، ثم ضع المسار على جدول يومي أو أسبوعي ليعمل وأنت نائم. مناسب للعمل المتكرّر: التقارير، المحتوى، وملخّصات البحث."
+    ],
+    kind: "route", to: "pipelines", cta: ["How pipelines work →", "كيف تعمل الخطوط ←"]
+  },
+  {
+    name: ["The Hive · six layers", "الخليّة · ست طبقات"],
+    tag: ["A full AI workforce across your whole company", "فريق ذكاء اصطناعي كامل عبر شركتك"],
+    desc: [
+      "The complete operating hive — specialist agents across executive strategy, revenue, operations, product, intelligence and infrastructure — that run together and report into one unified COO view.",
+      "الخليّة التشغيلية الكاملة — وكلاء متخصصون عبر الاستراتيجية التنفيذية، الإيرادات، العمليات، المنتج، الاستخبارات والبنية التحتية — يعملون معًا ويرفعون تقريرًا موحّدًا بمستوى مدير العمليات."
+    ],
+    kind: "route", to: "directory", cta: ["Browse the layers →", "تصفّح الطبقات ←"]
+  },
+];
+
+function ServicesPage({ go }) {
+  return (
+    <main className="wrap">
+      <section className="hero">
+        <p className="eyebrow">{t("Services", "الخدمات")}</p>
+        <h1>{t("Everything zhive can do for you.", "كل ما يمكن أن تفعله zhive لأجلك.")}</h1>
+        <p className="lede">
+          {t(
+            "Pick the job you want done. Each tool below does real work with you — in plain steps, in English or Arabic. New here? Start with the Business Brain, then try Idea to Business.",
+            "اختر المهمة التي تريد إنجازها. كل أداة أدناه تنجز عملًا حقيقيًا معك — بخطوات بسيطة، بالعربية أو الإنجليزية. جديد هنا؟ ابدأ بدماغ الأعمال، ثم جرّب من الفكرة إلى الشركة."
+          )}
+        </p>
+      </section>
+
+      <section className="section">
+        <p className="eyebrow">{t("Our tools", "أدواتنا")}</p>
+        <h2>{t("Flagship products", "المنتجات الأساسية")}</h2>
+        {SERVICES.map((s, i) => (
+          <div className="ws-agent" key={i}>
+            <strong>{t(s.name[0], s.name[1])}</strong>
+            <span className="dim-t" style={{ marginInlineStart: 8 }}>· {t(s.tag[0], s.tag[1])}</span>
+            <p style={{ margin: "6px 0 0" }}>{t(s.desc[0], s.desc[1])}</p>
+            <div className="row" style={{ marginTop: 10 }}>
+              {s.kind === "link"
+                ? <a className="btn small" href={s.to}>{t(s.cta[0], s.cta[1])}</a>
+                : <button className="btn small" onClick={() => go(s.to)}>{t(s.cta[0], s.cta[1])}</button>}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section className="section">
+        <p className="eyebrow">{t("Rent a single specialist", "استأجر متخصصًا واحدًا")}</p>
+        <h2>{t("The Agent Directory", "دليل الوكلاء")}</h2>
+        <p className="lede">
+          {t(
+            `Don't need the whole hive? Rent one agent by the month — ${DIR_AGENTS.length} specialists across ${DIR_LIST.length} categories, each with its own page, live demo and workspace.`,
+            `لا تحتاج الخليّة كاملة؟ استأجر وكيلًا واحدًا شهريًا — ${DIR_AGENTS.length} متخصصًا عبر ${DIR_LIST.length} فئات، لكل منها صفحته وعرضه الحيّ ومساحة عمله.`
+          )}
+        </p>
+        <div className="chips" style={{ marginTop: 12 }}>
+          {DIR_LIST.map((c) => (
+            <span className="chip" key={c.cat} style={{ cursor: "default" }}>{c.cat} · ${c.price}/mo</span>
+          ))}
+        </div>
+        <div className="row" style={{ marginTop: 16 }}>
+          <button className="btn" onClick={() => go("directory")}>{t(`Browse all ${DIR_AGENTS.length} agents →`, `تصفّح كل الوكلاء (${DIR_AGENTS.length}) ←`)}</button>
+        </div>
+      </section>
+
+      <section className="section center">
+        <h2>{t("Not sure where to start?", "لست متأكدًا من أين تبدأ؟")}</h2>
+        <p className="lede">{t("Take the 24-hour demo — full access, run any agent live, no card required.", "جرّب تجربة 24 ساعة — وصول كامل، شغّل أي وكيل مباشرة، دون بطاقة.")}</p>
+        <button className="btn" onClick={() => go("auth")}>{t("Start the demo →", "ابدأ التجربة ←")}</button>
+      </section>
+    </main>
   );
 }
 
@@ -1407,6 +1524,21 @@ function Home({ go }) {
         </p>
         <div className="row">
           <button className="btn" onClick={() => go("directory")}>Browse the directory ({DIR_AGENTS.length} agents) →</button>
+        </div>
+      </section>
+
+      {/* services teaser */}
+      <section className="section">
+        <p className="eyebrow">{t("Everything we offer", "كل ما نقدّمه")}</p>
+        <h2>{t("See every tool, explained simply", "شاهد كل أداة، مشروحة ببساطة")}</h2>
+        <p className="lede">
+          {t(
+            "Business Brain, Idea to Business, the Readiness Lab, Copilot, Pipelines and the full agent directory — one page, plain language, with a demo for each.",
+            "دماغ الأعمال، من الفكرة إلى الشركة، مختبر الجاهزية، المساعد، خطوط الوكلاء ودليل الوكلاء الكامل — صفحة واحدة، بلغة بسيطة، مع عرض تجريبي لكلٍّ منها."
+          )}
+        </p>
+        <div className="row">
+          <button className="btn" onClick={() => go("services")}>{t("Explore all services →", "استكشف كل الخدمات ←")}</button>
         </div>
       </section>
 
@@ -3379,6 +3511,27 @@ h3 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0 0
 .brand-name { font-family: var(--display); letter-spacing: 0.22em; font-size: 13px; color: var(--ink); }
 .hex { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; clip-path: polygon(25% 5%, 75% 5%, 100% 50%, 75% 95%, 25% 95%, 0% 50%); border: 1.5px solid var(--ink); box-shadow: inset 0 0 0 1.5px var(--ink); font-family: var(--mono); font-size: 13px; }
 .nav { display: flex; gap: 18px; align-items: center; }
+/* nav explain-balloons — hover on desktop, tap on mobile via :focus */
+.nav .link[data-tip] { position: relative; }
+.nav .link[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(-4px);
+  background: var(--ink); color: var(--bg); font-size: 11.5px; line-height: 1.4; font-weight: 400;
+  letter-spacing: 0; text-transform: none; text-decoration: none;
+  padding: 7px 10px; border-radius: 4px; width: max-content; max-width: 210px;
+  opacity: 0; pointer-events: none; transition: opacity .15s ease, transform .15s ease; z-index: 50;
+  white-space: normal; text-align: center;
+}
+.nav .link[data-tip]::before {
+  content: ""; position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-bottom-color: var(--ink);
+  opacity: 0; pointer-events: none; transition: opacity .15s ease; z-index: 50;
+}
+.nav .link[data-tip]:hover::after, .nav .link[data-tip]:focus-visible::after {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+}
+.nav .link[data-tip]:hover::before, .nav .link[data-tip]:focus-visible::before { opacity: 1; }
+html[dir="rtl"] .nav .link[data-tip]::after { letter-spacing: 0; }
 .foot { display: flex; justify-content: space-between; gap: 14px; padding: 18px 24px; border-top: 1px solid var(--line); font-size: 12px; color: var(--dim); flex-wrap: wrap; }
 
 /* buttons */
