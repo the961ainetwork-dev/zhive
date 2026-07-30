@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/claude.js": { "maxDuration": 60 },
-    "api/update-news.js": { "maxDuration": 60 },
+    "api/update-news.js": { "maxDuration": 300 },
     "api/send-newsletter.js": { "maxDuration": 60 }
   },
   "crons": [
