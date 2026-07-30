@@ -434,8 +434,8 @@
         <input id="market" type="text" placeholder="Lebanon, or GCC, or MENA-wide">
       </div>
       <div class="field">
-        <label for="stage">Where you are now</label>
-        <input id="stage" type="text" placeholder="Just an idea / early prototype / first customers">
+        <label for="stage-input">Where you are now</label>
+        <input id="stage-input" type="text" placeholder="Just an idea / early prototype / first customers">
       </div>
     </div>
 
@@ -565,7 +565,7 @@
   // ---------- dom ----------
 
   var $ = function (id) { return document.getElementById(id); };
-  var ideaEl = $("idea"), marketEl = $("market"), stageInputEl = $("stage");
+  var ideaEl = $("idea"), marketEl = $("market"), stageInputEl = $("stage-input");
   var runBtn = $("runBtn"), stopBtn = $("stopBtn"), statusEl = $("status");
   var stageEl = $("stage"), nodesEl = $("nodes"), cardsEl = $("cards"), actionsEl = $("actions");
   var copyBtn = $("copyBtn"), dlBtn = $("dlBtn"), resetBtn = $("resetBtn");
