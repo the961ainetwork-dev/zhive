@@ -1259,11 +1259,11 @@ function Home({ go }) {
     <main className="wrap">
       <section className="hero">
         <p className="eyebrow">{t("Ideation → implementation · MENA-first", "من الفكرة إلى التنفيذ · الشرق الأوسط أولاً")}</p>
-        <h1>{t("Every department your startup needs.", "كل الأقسام التي تحتاجها شركتك الناشئة.")}<br />{t("Running as one hive.", "تعمل كخليّة واحدة.")}</h1>
+        <h1>{t("Run your whole startup like you've got a full team.", "أدِر شركتك الناشئة بالكامل وكأن لديك فريقًا متكاملًا.")}<br />{t("(You kind of do.)", "(ولديك فريق بالفعل.)")}</h1>
         <p className="lede">
           {t(
-            "zhive.xyz deploys specialist AI agents across six interconnected layers — executive strategy, revenue, operations, product, intelligence, and infrastructure — and hands you one unified COO report you can act on today.",
-            "تنشر zhive.xyz وكلاء ذكاء اصطناعي متخصصين عبر ست طبقات مترابطة — الاستراتيجية التنفيذية، الإيرادات، العمليات، المنتج، الاستخبارات، والبنية التحتية — وتسلّمك تقريرًا موحّدًا بمستوى مدير عمليات تتصرف بناءً عليه اليوم."
+            "A hive of specialist AI agents that learn your business and run your ops with you — no experience needed. Built for founders across Lebanon and the region.",
+            "خليّة من وكلاء الذكاء الاصطناعي المتخصصين يتعلّمون نشاطك ويديرون عملياتك معك — دون خبرة مسبقة. مبنيّة لروّاد الأعمال في لبنان والمنطقة."
           )}
         </p>
         <div className="row">
@@ -1274,6 +1274,44 @@ function Home({ go }) {
 
 
       <HappeningNow onCTA={() => go("auth")} />
+
+      {/* start here — beginner on-ramp: plain-language flagship tools */}
+      <section className="section">
+        <p className="eyebrow">{t("Start here", "ابدأ من هنا")}</p>
+        <h2>{t("New to this? Start with one of these.", "جديد على هذا؟ ابدأ بواحدة من هذه.")}</h2>
+        <p className="lede">
+          {t(
+            "You don't need to understand AI to use zhive. Pick a job you want done, and an agent does it with you — in plain steps, in English or Arabic.",
+            "لا تحتاج إلى فهم الذكاء الاصطناعي لاستخدام zhive. اختر مهمة تريد إنجازها، وينفّذها وكيل معك — بخطوات بسيطة، بالعربية أو الإنجليزية."
+          )}
+        </p>
+
+        <div className="ws-agent">
+          <strong>{t("💡 Idea to Business", "💡 من الفكرة إلى الشركة")}</strong>
+          <p style={{ margin: "6px 0 0" }}>
+            {t(
+              "Have an idea but not sure if it works? Type it in one sentence. Five AI specialists — ideation, market research, strategy, financials and documentation — work it in turn and hand you an investor-ready brief. Great for a first business plan.",
+              "لديك فكرة ولا تعرف إن كانت ستنجح؟ اكتبها في جملة واحدة. خمسة وكلاء متخصصين — الفكرة، بحث السوق، الاستراتيجية، المالية، والتوثيق — يعملون عليها بالتتابع ويسلّمونك ملخّصًا جاهزًا للمستثمرين. مثالي لأول خطة عمل."
+            )}
+          </p>
+          <div className="row" style={{ marginTop: 10 }}>
+            <a className="btn small" href="/ideatobusiness.html">{t("Try Idea to Business →", "جرّب من الفكرة إلى الشركة ←")}</a>
+          </div>
+        </div>
+
+        <div className="ws-agent">
+          <strong>{t("🧠 Business Brain", "🧠 دماغ الأعمال")}</strong>
+          <p style={{ margin: "6px 0 0" }}>
+            {t(
+              "Tell zhive about your business once — your products, prices, customers, the way you work. It remembers, so every agent you use afterwards already knows your company and gets smarter over time. Set it up first; everything else works better.",
+              "أخبر zhive عن نشاطك مرة واحدة — منتجاتك، أسعارك، عملاؤك، وطريقة عملك. سيتذكّرها، فيصبح كل وكيل تستخدمه بعد ذلك عارفًا بشركتك ويزداد ذكاءً مع الوقت. جهّزه أولًا؛ وكل ما تبقّى يعمل بشكل أفضل."
+            )}
+          </p>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button className="btn small" onClick={() => go("brain")}>{t("Set up your Brain →", "جهّز دماغك ←")}</button>
+          </div>
+        </div>
+      </section>
 
       {/* what zhive is: agents + the Readiness Lab */}
       <section className="section">
