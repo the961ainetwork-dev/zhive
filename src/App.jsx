@@ -629,7 +629,7 @@ export default function ZhiveApp() {
 
   // routing — state-driven, synced to real URLs (/admin, /directory, /agent/:id …)
   // so deep links, refreshes, and back/forward all work (vercel.json rewrites make Vercel serve the SPA).
-  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin", "copilot", "brain"];
+  const VIEWS = ["home", "about", "knowledge", "article", "directory", "method", "pipelines", "lab", "agent", "cart", "auth", "workspace", "admin", "copilot", "brain", "services", "book"];
   const routeFromPath = () => {
     const parts = window.location.pathname.split("/").filter(Boolean);
     const view = parts[0] || "home";
@@ -777,7 +777,8 @@ export default function ZhiveApp() {
       {route.view === "lab" && <LabPage go={go} session={session} />}
       {route.view === "agent" && <AgentPage agent={getAgent(route.agentId)} go={go} inCart={inCart} addToCart={addToCart} session={session} biz={biz} />}
       {route.view === "cart" && <CartPage cart={cart} removeFromCart={removeFromCart} total={cartTotal} checkout={checkout} session={session} busy={busy} go={go} />}
-      {route.view === "auth" && <AuthPage signup={signup} login={login} startDemo={startDemo} />}
+      {route.view === "auth" && <AuthPage signup={signup} login={login} startDemo={startDemo} go={go} />}
+      {route.view === "book" && <BookDemo go={go} />}
       {route.view === "workspace" && <Workspace session={session} purchases={purchases} myOrders={myOrders} biz={biz} saveBiz={saveBiz} go={go} startDemo={startDemo} />}
       {route.view === "admin" && <Admin />}
       {route.view === "copilot" && <CopilotPage go={go} session={session} startDemo={startDemo} />}
@@ -1364,7 +1365,7 @@ function ServicesPage({ go }) {
       <section className="section center">
         <h2>{t("Not sure where to start?", "لست متأكدًا من أين تبدأ؟")}</h2>
         <p className="lede">{t("Take the 24-hour demo — full access, run any agent live, no card required.", "جرّب تجربة 24 ساعة — وصول كامل، شغّل أي وكيل مباشرة، دون بطاقة.")}</p>
-        <button className="btn" onClick={() => go("auth")}>{t("Start the demo →", "ابدأ التجربة ←")}</button>
+        <button className="btn" onClick={() => go("book")}>{t("Book a demo →", "احجز عرضًا ←")}</button>
       </section>
     </main>
   );
@@ -1384,7 +1385,7 @@ function Home({ go }) {
           )}
         </p>
         <div className="row">
-          <button className="btn" onClick={() => go("auth")}>{t("Start free — 24h demo", "ابدأ مجانًا — تجربة 24 ساعة")}</button>
+          <button className="btn" onClick={() => go("book")}>{t("Book a free demo", "احجز عرضًا مجانيًا")}</button>
           <button className="btn ghost" onClick={() => document.getElementById("layers")?.scrollIntoView({ behavior: "smooth" })}>{t("Browse agents ↓", "تصفّح الوكلاء ↓")}</button>
         </div>
       </section>
@@ -1545,7 +1546,7 @@ function Home({ go }) {
       <section className="section center">
         <h2>Not sure where to start?</h2>
         <p className="lede">Take the 24-hour demo — full workspace access, run any agent live, no card required.</p>
-        <button className="btn" onClick={() => go("auth")}>Start the demo →</button>
+        <button className="btn" onClick={() => go("book")}>Book a demo →</button>
       </section>
     </main>
   );
@@ -2937,7 +2938,188 @@ function CartPage({ cart, removeFromCart, total, checkout, session, busy, go }) 
 }
 
 // ════════ AUTH ════════
-function AuthPage({ signup, login, startDemo }) {
+// ════════ BOOK A DEMO ════════
+// Calendly-style: pick a weekday in the next month + a 30-min slot (12:00–16:30),
+// then leave name/email/company/note. Taken slots are greyed out. Replaces the
+// instant demo — bookings are stored via /api/appointments and shown in /admin.
+const BOOK_TIMES = ['12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+
+function bookYmd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function BookDemo({ go }) {
+  const [taken, setTaken] = useState([]);      // ["YYYY-MM-DD HH:MM", ...]
+  const [loadingSlots, setLoadingSlots] = useState(true);
+  const [selDate, setSelDate] = useState(null); // "YYYY-MM-DD"
+  const [selTime, setSelTime] = useState(null); // "HH:MM"
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [company, setCompany] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const [done, setDone] = useState(null);       // confirmed appointment
+
+  // load taken slots
+  useEffect(() => {
+    fetch('/api/appointments?taken=1')
+      .then((r) => r.json())
+      .then((d) => { setTaken(d.taken || []); })
+      .catch(() => { })
+      .finally(() => setLoadingSlots(false));
+  }, []);
+
+  // build the next ~31 days, weekdays only
+  const days = [];
+  {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    for (let i = 0; i < 31; i++) {
+      const d = new Date(today); d.setDate(d.getDate() + i);
+      const dow = d.getDay();
+      if (dow === 0 || dow === 6) continue; // skip weekends
+      days.push(d);
+    }
+  }
+
+  const slotTaken = (date, time) => taken.includes(`${date} ${time}`);
+  const allSlotsTakenForDay = (dateStr) => BOOK_TIMES.every((tm) => slotTaken(dateStr, tm));
+
+  async function confirm() {
+    if (busy) return;
+    setErr(null);
+    if (!selDate || !selTime) { setErr(t('Pick a day and a time first.', 'اختر يومًا ووقتًا أولًا.')); return; }
+    if (!name.trim()) { setErr(t('Please enter your name.', 'من فضلك أدخل اسمك.')); return; }
+    if (!email.includes('@')) { setErr(t('Please enter a valid email.', 'من فضلك أدخل بريدًا صحيحًا.')); return; }
+    setBusy(true);
+    try {
+      const r = await fetch('/api/appointments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: selDate, time: selTime, name: name.trim(), email: email.trim(), company: company.trim(), note: note.trim() }),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        setErr(d.error || t('Booking failed. Try again.', 'فشل الحجز. حاول مجددًا.'));
+        // if the slot was taken meanwhile, refresh availability
+        if (r.status === 409) {
+          setTaken((prev) => [...prev, `${selDate} ${selTime}`]);
+          setSelTime(null);
+        }
+      } else {
+        setDone(d.appointment || { date: selDate, time: selTime, name: name.trim() });
+      }
+    } catch {
+      setErr(t('Network error. Try again.', 'خطأ في الشبكة. حاول مجددًا.'));
+    }
+    setBusy(false);
+  }
+
+  const fmtDay = (d) =>
+    d.toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  if (done) {
+    return (
+      <main className="wrap narrow">
+        <p className="eyebrow">{t('Booked', 'تم الحجز')}</p>
+        <h1>{t("You're all set.", 'كل شيء جاهز.')}</h1>
+        <div className="ws-agent" style={{ marginTop: 16 }}>
+          <strong>{t('Your demo appointment', 'موعد عرضك التوضيحي')}</strong>
+          <p style={{ margin: '8px 0 0' }}>
+            📅 {new Date(done.date + 'T00:00:00').toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            <br />🕐 {done.time} {t('(Beirut time)', '(بتوقيت بيروت)')}
+          </p>
+          <p className="dim-t" style={{ marginTop: 10 }}>
+            {t('Our team will meet you then. A calendar invite may follow by email.', 'سيلتقي بك فريقنا حينها. قد تصلك دعوة تقويم عبر البريد.')}
+          </p>
+        </div>
+        <div className="row" style={{ marginTop: 18 }}>
+          <button className="btn" onClick={() => go('home')}>{t('Back to home', 'العودة للرئيسية')}</button>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="wrap">
+      <p className="eyebrow">{t('Book a demo', 'احجز عرضًا توضيحيًا')}</p>
+      <h1>{t('Pick a time that works for you.', 'اختر وقتًا يناسبك.')}</h1>
+      <p className="lede">
+        {t('Choose a weekday in the next month and a 30-minute slot between 12:00 and 16:30 (Beirut time). We\u2019ll walk you through zhive live.',
+           'اختر يومًا من أيام الأسبوع خلال الشهر القادم وموعدًا مدته 30 دقيقة بين 12:00 و16:30 (بتوقيت بيروت). سنعرض لك zhive مباشرة.')}
+      </p>
+
+      {loadingSlots ? (
+        <p className="dim-t" style={{ marginTop: 20 }}>{t('Loading available times\u2026', 'جارٍ تحميل الأوقات المتاحة\u2026')}</p>
+      ) : (
+        <div className="book-grid">
+          <div className="book-days">
+            <p className="book-lbl">{t('1 · Choose a day', '1 · اختر يومًا')}</p>
+            <div className="book-day-list">
+              {days.map((d) => {
+                const ds = bookYmd(d);
+                const full = allSlotsTakenForDay(ds);
+                return (
+                  <button
+                    key={ds}
+                    className={'book-day' + (selDate === ds ? ' on' : '') + (full ? ' full' : '')}
+                    disabled={full}
+                    onClick={() => { setSelDate(ds); setSelTime(null); setErr(null); }}
+                  >
+                    {fmtDay(d)}{full ? ' · ' + t('full', 'ممتلئ') : ''}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="book-slots">
+            <p className="book-lbl">{t('2 · Choose a time', '2 · اختر وقتًا')}</p>
+            {!selDate ? (
+              <p className="dim-t">{t('Pick a day first.', 'اختر يومًا أولًا.')}</p>
+            ) : (
+              <div className="book-slot-list">
+                {BOOK_TIMES.map((tm) => {
+                  const gone = slotTaken(selDate, tm);
+                  return (
+                    <button
+                      key={tm}
+                      className={'book-slot' + (selTime === tm ? ' on' : '') + (gone ? ' gone' : '')}
+                      disabled={gone}
+                      onClick={() => { setSelTime(tm); setErr(null); }}
+                    >
+                      {tm}{gone ? ' · ' + t('taken', 'محجوز') : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="book-form">
+            <p className="book-lbl">{t('3 · Your details', '3 · بياناتك')}</p>
+            <label>{t('Name', 'الاسم')}</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Rania Khoury', 'رانيا خوري')} />
+            <label>{t('Email', 'البريد الإلكتروني')}</label>
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" />
+            <label>{t('Company', 'الشركة')}</label>
+            <input value={company} onChange={(e) => setCompany(e.target.value)} placeholder={t('Your company (optional)', 'شركتك (اختياري)')} />
+            <label>{t('Anything we should know?', 'أي شيء يجب أن نعرفه؟')}</label>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder={t('What you\u2019d like to see (optional)', 'ما تودّ رؤيته (اختياري)')} />
+            {err && <p className="err">{err}</p>}
+            <button className="btn" style={{ marginTop: 14 }} disabled={busy} onClick={confirm}>
+              {busy ? '\u2026' : selDate && selTime
+                ? t(`Confirm ${selTime}`, `أكّد ${selTime}`)
+                : t('Confirm booking', 'أكّد الحجز')}
+            </button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+// ════════ AUTH ════════
+function AuthPage({ signup, login, startDemo, go }) {
   const [mode, setMode] = useState("signup");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -2973,8 +3155,8 @@ function AuthPage({ signup, login, startDemo }) {
         </button>
       </div>
       <div className="demo-cta">
-        <p><strong>Just looking?</strong> Try the full workspace free for 24 hours — no email, no card.</p>
-        <button className="btn ghost" onClick={startDemo}>Start 24-hour demo →</button>
+        <p><strong>Just looking?</strong> Book a free 30-minute demo — we'll walk you through zhive live.</p>
+        <button className="btn ghost" onClick={() => go("book")}>Book a demo →</button>
       </div>
       {!isCloud && <p className="dim-t small-t">Prototype mode: accounts live in memory and reset on refresh. Don't use a real password.</p>}
     </main>
@@ -3573,6 +3755,30 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* chips */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .chip { font-family: var(--mono); font-size: 11.5px; padding: 5px 11px; border: 1px solid var(--ink); background: var(--bg); color: var(--ink); }
+
+/* ── Book a demo ── */
+.book-grid { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 22px; margin-top: 24px; align-items: start; }
+.book-lbl { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin: 0 0 12px; }
+.book-day-list, .book-slot-list { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
+.book-slot-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.book-day, .book-slot {
+  font-family: var(--body); font-size: 14px; text-align: left;
+  padding: 11px 13px; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  border-radius: 4px; cursor: pointer; transition: border-color .12s ease, background .12s ease;
+}
+.book-day:hover:not(:disabled), .book-slot:hover:not(:disabled) { border-color: var(--ink); }
+.book-day.on, .book-slot.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.book-day.full, .book-day:disabled, .book-slot.gone, .book-slot:disabled {
+  color: #B7B7B7; background: #F6F6F4; cursor: not-allowed; text-decoration: line-through; border-color: var(--line);
+}
+.book-form label { display: block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--dim); margin: 12px 0 5px; }
+.book-form label:first-of-type { margin-top: 0; }
+.book-form input, .book-form textarea {
+  width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 4px;
+  padding: 10px 12px; font-family: var(--body); font-size: 14px; color: var(--ink); background: var(--bg); resize: vertical;
+}
+.book-form input:focus, .book-form textarea:focus { outline: 2px solid var(--ink); outline-offset: 1px; border-color: transparent; }
+@media (max-width: 860px) { .book-grid { grid-template-columns: 1fr; } .book-day-list { max-height: 240px; } }
 .chip:hover { background: var(--ink); color: var(--bg); }
 
 /* agent page */
