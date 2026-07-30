@@ -10,19 +10,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0E1420;
-    --ink-raised:#161E2E;
-    --ink-line:#26314A;
-    --paper:#FFFFFF;
-    --paper-dim:#FFFFFF;
-    --muted:#FFFFFF;
-    --brass:#C8A24A;
-    --brass-soft:rgba(200,162,74,.14);
-    --green:#4FB3A0;
-    --red:#E0685E;
-    --display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-    --body:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-    --mono:"IBM Plex Mono", ui-monospace, monospace;
+    /* matched to zhive.xyz — white ground, black ink, hairline borders */
+    --ink:#FFFFFF;            /* page background */
+    --ink-raised:#FFFFFF;     /* raised panels — kept white, separated by border */
+    --ink-line:#E4E4E4;       /* hairline borders (site --line) */
+    --paper:#0B0B0B;          /* primary text (site --ink) */
+    --paper-dim:#0B0B0B;      /* strong text */
+    --muted:#6E6E6E;          /* secondary text (site --dim) */
+    --brass:#0B0B0B;          /* accent → site ink, so active/done read as black */
+    --brass-soft:rgba(11,11,11,.06);
+    --green:#0B0B0B;
+    --red:#C0392B;
+    --display:"Futura", "Avenir Next", "Century Gothic", "Trebuchet MS", sans-serif;
+    --body:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono:ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
   }
 
   *{box-sizing:border-box;}
@@ -128,7 +129,7 @@
   }
 
   .field textarea::placeholder,
-  .field input::placeholder{color:#93A0B4;}
+  .field input::placeholder{color:#9A9A9A;}
 
   .row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
 
@@ -147,8 +148,8 @@
   button:focus-visible{outline:2px solid var(--brass);outline-offset:2px;}
   button:disabled{opacity:.4;cursor:not-allowed;}
 
-  .btn-run{background:var(--brass);color:#1A1408;}
-  .btn-run:not(:disabled):hover{background:#D9B45C;}
+  .btn-run{background:#0B0B0B;color:#FFFFFF;border-color:#0B0B0B;}
+  .btn-run:not(:disabled):hover{background:#2A2A2A;}
 
   .btn-ghost{background:transparent;color:var(--paper-dim);border-color:var(--ink-line);}
   .btn-ghost:not(:disabled):hover{color:var(--paper);border-color:var(--muted);}
@@ -234,8 +235,8 @@
   .node.failed .dot{border-color:var(--red);background:var(--red);}
 
   @keyframes pulse{
-    0%,100%{box-shadow:0 0 0 0 rgba(200,162,74,.45);}
-    50%{box-shadow:0 0 0 6px rgba(200,162,74,0);}
+    0%,100%{box-shadow:0 0 0 0 rgba(11,11,11,.28);}
+    50%{box-shadow:0 0 0 6px rgba(11,11,11,0);}
   }
 
   .node-num{
@@ -280,8 +281,9 @@
   }
 
   .card{
-    background:var(--paper);
-    color:#1A1F28;
+    background:#FFFFFF;
+    color:#0B0B0B;
+    border:1px solid var(--ink-line);
     border-radius:4px;
     padding:30px 32px;
     margin-bottom:22px;
@@ -297,7 +299,7 @@
     display:flex;
     align-items:baseline;
     gap:12px;
-    border-bottom:1px solid #D3D6D0;
+    border-bottom:1px solid var(--ink-line);
     padding-bottom:13px;
     margin-bottom:19px;
   }
@@ -305,8 +307,7 @@
   .card-num{
     font-family:var(--mono);
     font-size:11.5px;
-    color:#8A9068;
-    color:#7E8492;
+    color:var(--muted);
     letter-spacing:.06em;
   }
 
@@ -333,8 +334,8 @@
   .card-body li{margin-bottom:5px;}
   .card-body strong{font-weight:600;}
   .card-body table{border-collapse:collapse;width:100%;margin:0 0 14px;font-size:14.2px;}
-  .card-body th,.card-body td{border:1px solid #D3D6D0;padding:7px 10px;text-align:left;}
-  .card-body th{background:#E2E3DD;font-weight:600;}
+  .card-body th,.card-body td{border:1px solid var(--ink-line);padding:7px 10px;text-align:left;}
+  .card-body th{background:#F5F5F3;font-weight:600;}
 
   .card.thinking{
     background:var(--ink-raised);
@@ -354,8 +355,8 @@
   .card.error .detail{
     font-family:var(--mono);
     font-size:12.5px;
-    color:var(--paper-dim);
-    background:var(--ink);
+    color:#0B0B0B;
+    background:#F5F5F3;
     border-radius:3px;
     padding:12px 14px;
     margin:14px 0 18px;
