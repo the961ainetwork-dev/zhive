@@ -38,9 +38,10 @@ export default async function handler(req, res) {
           <div style="font-size:22px;font-weight:900;letter-spacing:2px">ZHIVE</div>
           <div style="font-size:12px;color:#888;margin-top:4px">☀️ Your morning AI briefing · ${stories[0]?.date || ''}</div>
         </div>
+        <div style="font-size:14px;color:#444;line-height:1.7;margin-bottom:24px">Good morning. Here is your daily signal-to-noise check on everything moving fast in artificial intelligence — curated model drops, breaking updates, and technical breakthroughs to start your day.</div>
         ${storyHtml}
         <div style="text-align:center;margin-top:28px;padding-top:20px;border-top:1px solid #eee">
-          <a href="https://zhive-psi.vercel.app" style="display:inline-block;background:#0a0a0a;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600">Open ZHIVE →</a>
+          <a href="https://www.zhive.xyz" style="display:inline-block;background:#0a0a0a;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-size:14px;font-weight:600">Open ZHIVE →</a>
           <div style="font-size:11px;color:#bbb;margin-top:16px">© 2026 ZHIVE · Built in Beirut 🇱🇧</div>
         </div>
       </div>`;
