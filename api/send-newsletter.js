@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'ZHIVE Daily <onboarding@resend.dev>',
+          from: 'ZHIVE Daily <news@zhive.xyz>',
           to: sub.email,
           subject: `☀️ AI Morning Brief — ${stories[0]?.title || 'Today in AI'}`,
           html: emailHtml,
