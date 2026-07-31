@@ -2605,24 +2605,104 @@ function ArtBlocks({ blocks }) {
   );
 }
 
+// Flatten an article's typed blocks into clean plain text (for share + PDF).
+function articleToText(art) {
+  const parts = [];
+  for (const b of art.blocks) {
+    if (b.t === "p" || b.t === "h" || b.t === "pull") parts.push(String(b.x));
+    else if (b.t === "code") parts.push(String(b.x));
+    else if (b.t === "vs") {
+      parts.push(`${b.head[0]}  |  ${b.head[1]}`);
+      b.rows.forEach(([l, r]) => parts.push(`• ${l}  |  ${r}`));
+    } else if (b.t === "tl" || b.t === "grid") {
+      b.x.forEach(([label, body]) => parts.push(`${label}: ${body}`));
+    } else if (b.t === "stats") {
+      b.x.forEach(([n, l]) => parts.push(`${n} — ${l}`));
+    } else if (b.t === "flow" || b.t === "checks") {
+      parts.push(b.x.join(" → "));
+    }
+  }
+  return parts.join("\n\n");
+}
+
+// Short excerpt for the WhatsApp message body.
+function articleExcerpt(art, max = 380) {
+  const firstPara = art.blocks.find((b) => b.t === "p");
+  let txt = firstPara ? String(firstPara.x) : art.dek;
+  txt = txt.replace(/^Abstract\s*—\s*/, "");
+  if (txt.length > max) txt = txt.slice(0, max).replace(/\s+\S*$/, "") + "…";
+  return txt;
+}
+
 function ArticlePage({ id, go }) {
   if (id === "loop-engineering" || !id) return <LoopArticle go={go} />;
   const art = ARTICLES.find((a) => a.id === id);
   if (!art) return <main className="wrap"><p>Article not found.</p></main>;
+
+  const url = `https://www.zhive.xyz/article/${art.id}`;
+
+  const waShareArticle = () => {
+    // Structured message: branded intro → title → excerpt → link → closing
+    const intro = "🔔 A Working Paper from zhive.xyz\nThe AI Workforce: Agents That Actually Do The Work";
+    const excerpt = articleExcerpt(art);
+    const closing =
+      `Read the full paper:\n${url}\n\n` +
+      "By Maan Barazy — Founder, zHive · Alkhawarizmi Solutions\n\n" +
+      "Join the zhive.xyz WhatsApp group:\nhttps://chat.whatsapp.com/KcE0dmp9drGGE5VmFv0tJZ\n\n" +
+      "Join the AlKhawarizmi Community WhatsApp group:\nhttps://chat.whatsapp.com/KdqHl2Rj60pGUgvAV2TM20\n\n" +
+      "Follow us on LinkedIn:\nhttps://www.linkedin.com/groups/10064575/";
+    const text = `${intro}\n\n📄 ${art.title}\n\n${excerpt}\n\n${closing}`;
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  };
+
+  const pdfArticle = () => {
+    const w = window.open("", "_blank");
+    const bodyHtml = articleToText(art)
+      .split("\n\n")
+      .map((p) => "<p>" + p.replace(/</g, "&lt;").replace(/\n/g, "<br>") + "</p>")
+      .join("");
+    w.document.write(`<!DOCTYPE html><html><head><title>${art.title}</title>
+      <style>
+        body{font-family:Georgia,'Times New Roman',serif;max-width:720px;margin:44px auto;padding:0 28px;color:#0a0a0a;line-height:1.75}
+        .brand{font-size:20px;font-weight:900;letter-spacing:2px;margin-bottom:2px}
+        .kind{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:14px}
+        h1{font-size:27px;line-height:1.25;margin:6px 0 6px}
+        .dek{font-size:15px;color:#444;font-style:italic;margin:0 0 8px}
+        .byline{font-size:13px;color:#666;margin:0 0 26px;padding-bottom:16px;border-bottom:1px solid #e6e6e6}
+        p{font-size:14.5px;margin:0 0 14px}
+        .foot{margin-top:34px;padding-top:16px;border-top:1px solid #eee;font-size:11px;color:#aaa}
+      </style></head><body>
+      <div class="brand">ZHIVE</div>
+      <div class="kind">${art.kind}</div>
+      <h1>${art.title}</h1>
+      <p class="dek">${art.dek}</p>
+      <p class="byline">By Maan Barazy — Founder, zHive · Alkhawarizmi Solutions</p>
+      ${bodyHtml}
+      <div class="foot">© 2026 zhive.xyz · Alkhawarizmi Solutions · Working Papers</div>
+      </body></html>`);
+    w.document.close();
+    setTimeout(() => w.print(), 400);
+  };
+
   return (
     <main className="wrap article">
-      <button className="link dim" onClick={() => go("knowledge")}>← Knowledge resources</button>
+      <button className="link dim" onClick={() => go("knowledge")}>← Working papers</button>
       <p className="eyebrow" style={{ marginTop: 20 }}>{art.kind}</p>
       <h1>{art.title}</h1>
       <p className="lede">{art.dek}</p>
       <ArtBlocks blocks={art.blocks} />
-      <div className="row" style={{ marginTop: 30 }}>
-        <button className="btn" onClick={() => go("home")}>See the hive in action →</button>
-        <button className="btn ghost" onClick={() => go("knowledge")}>More resources</button>
+
+      {/* article actions: CTA + WhatsApp + PDF */}
+      <div className="row" style={{ marginTop: 34, flexWrap: "wrap", gap: 10 }}>
+        <button className="btn" onClick={() => go("book")}>Book a demo →</button>
+        <button className="btn ghost" onClick={waShareArticle}>Share on WhatsApp</button>
+        <button className="btn ghost" onClick={pdfArticle}>Download PDF</button>
+        <button className="link" onClick={() => go("knowledge")}>More papers</button>
       </div>
     </main>
   );
 }
+
 
 
 // ════════ METHODOLOGY ════════
@@ -3954,7 +4034,7 @@ function Admin() {
       <p className="eyebrow">/admin {isCloud ? "· live data" : "· prototype data"}</p>
       <h1>Hive control</h1>
       <div className="row tabs">
-        {["registrations", "finances", "orders", "metrics"].map((t) => (
+        {["registrations", "finances", "orders", "metrics", "newsletter", "broadcast"].map((t) => (
           <button key={t} className={"tab" + (tab === t ? " on" : "")} onClick={() => setTab(t)}>{t}</button>
         ))}
       </div>
@@ -4018,11 +4098,136 @@ function Admin() {
           </tbody>
         </table>
       )}
+      {tab === "newsletter" && <AdminNewsletter pw={pw} />}
+      {tab === "broadcast" && <AdminBroadcast pw={pw} />}
     </main>
   );
 }
 
-// ════════ STYLES ════════
+// ── Admin: subscriber management ──
+function AdminNewsletter({ pw }) {
+  const [subs, setSubs] = useState(null);
+  const [adding, setAdding] = useState("");
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const call = async (payload) => {
+    const r = await fetch("/api/newsletter-admin", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pass: pw, ...payload }),
+    });
+    return r.json();
+  };
+
+  const load = async () => { const d = await call({ action: "list" }); if (d.subscribers) setSubs(d.subscribers); else setMsg(d.error || "Could not load"); };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+
+  const add = async () => {
+    if (busy || !adding.trim()) return;
+    setBusy(true); setMsg(null);
+    const d = await call({ action: "add", emails: adding });
+    if (d.ok) { setMsg(`Added ${d.added}${d.added === 0 ? " (all already subscribed)" : ""}.`); setAdding(""); await load(); }
+    else setMsg(d.error || "Failed");
+    setBusy(false);
+  };
+
+  const remove = async (email) => {
+    if (!window.confirm(`Remove ${email}?`)) return;
+    setBusy(true); setMsg(null);
+    const d = await call({ action: "remove", email });
+    if (d.ok) await load(); else setMsg(d.error || "Failed");
+    setBusy(false);
+  };
+
+  return (
+    <section>
+      <div className="stat-row">
+        <div className="stat"><span className="stat-n">{subs ? subs.length : "…"}</span><span className="dim-t">subscribers</span></div>
+      </div>
+      <label>Add emails (one or many — commas, spaces, or new lines)</label>
+      <textarea rows={3} value={adding} onChange={(e) => setAdding(e.target.value)} placeholder="rania@company.com, omar@startup.io&#10;sara@business.co" />
+      <div className="row" style={{ marginTop: 10 }}>
+        <button className="btn" onClick={add} disabled={busy}>{busy ? "…" : "Add to list"}</button>
+      </div>
+      {msg && <p className="dim-t" style={{ marginTop: 10 }}>{msg}</p>}
+      {subs && subs.length > 0 && (
+        <table className="tbl" style={{ marginTop: 18 }}>
+          <thead><tr><th>Email</th><th style={{ width: 90 }}></th></tr></thead>
+          <tbody>
+            {subs.map((e) => (
+              <tr key={e}><td>{e}</td><td><button className="link" onClick={() => remove(e)}>Remove</button></td></tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
+// ── Admin: custom broadcast composer ──
+function AdminBroadcast({ pw }) {
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [buttonText, setButtonText] = useState("");
+  const [buttonUrl, setButtonUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [recipients, setRecipients] = useState(""); // blank = all subscribers
+  const [msg, setMsg] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const send = async (testOnly) => {
+    if (busy) return;
+    if (!subject.trim() || !body.trim()) { setMsg("Subject and message are required."); return; }
+    if (testOnly && !window.prompt) return;
+    let recips = recipients;
+    if (testOnly) {
+      const me = window.prompt("Send a test to which email?");
+      if (!me) return;
+      recips = me;
+    } else {
+      const who = recipients.trim() ? "the pasted recipients" : "ALL subscribers";
+      if (!window.confirm(`Send this broadcast to ${who}?`)) return;
+    }
+    setBusy(true); setMsg(null);
+    const r = await fetch("/api/newsletter-admin", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pass: pw, action: "broadcast", subject, body, buttonText, buttonUrl, imageUrl, recipients: recips }),
+    });
+    const d = await r.json();
+    if (d.ok) setMsg(`Sent to ${d.sent} of ${d.total}.${d.failed && d.failed.length ? " Failed: " + d.failed.join(", ") : ""}`);
+    else setMsg(d.error || "Failed");
+    setBusy(false);
+  };
+
+  return (
+    <section>
+      <label>Subject</label>
+      <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="New offer: 30% off your first month" />
+      <label style={{ marginTop: 12 }}>Message (blank line separates paragraphs)</label>
+      <textarea rows={6} value={body} onChange={(e) => setBody(e.target.value)} placeholder="Hi there,&#10;&#10;We just launched…" />
+      <div className="row" style={{ gap: 12 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ marginTop: 12 }}>Button text (optional)</label>
+          <input value={buttonText} onChange={(e) => setButtonText(e.target.value)} placeholder="Claim the offer" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <label style={{ marginTop: 12 }}>Button link (optional)</label>
+          <input value={buttonUrl} onChange={(e) => setButtonUrl(e.target.value)} placeholder="https://www.zhive.xyz/…" />
+        </div>
+      </div>
+      <label style={{ marginTop: 12 }}>Image URL (optional — a hosted image link)</label>
+      <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://…/banner.png" />
+      <label style={{ marginTop: 12 }}>Recipients (blank = all subscribers; or paste specific emails)</label>
+      <textarea rows={2} value={recipients} onChange={(e) => setRecipients(e.target.value)} placeholder="Leave blank to send to everyone" />
+      <div className="row" style={{ marginTop: 14, gap: 10, flexWrap: "wrap" }}>
+        <button className="btn ghost" onClick={() => send(true)} disabled={busy}>Send test to me</button>
+        <button className="btn" onClick={() => send(false)} disabled={busy}>{busy ? "Sending…" : "Send broadcast"}</button>
+      </div>
+      {msg && <p className="dim-t" style={{ marginTop: 12 }}>{msg}</p>}
+      <p className="dim-t small-t" style={{ marginTop: 10 }}>Free tier caps at 100 emails/day. Test to yourself first.</p>
+    </section>
+  );
+}
 const CSS = `
 /* ——— RTL / Arabic mode ——— */
 html[dir="rtl"] body, html[dir="rtl"] input, html[dir="rtl"] textarea, html[dir="rtl"] select, html[dir="rtl"] button { font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif; }
